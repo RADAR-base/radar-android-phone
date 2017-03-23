@@ -2,7 +2,6 @@ package org.radarcns.phone;
 
 import android.os.Parcelable;
 
-import org.radarcns.R;
 import org.radarcns.android.device.DeviceServiceProvider;
 
 import java.util.Arrays;
