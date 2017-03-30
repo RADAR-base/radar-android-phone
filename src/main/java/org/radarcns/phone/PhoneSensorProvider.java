@@ -7,13 +7,14 @@ import org.radarcns.android.device.DeviceServiceProvider;
 import java.util.Arrays;
 import java.util.List;
 
-import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
+import static android.Manifest.permission.READ_CALL_LOG;
+import static android.Manifest.permission.READ_SMS;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
-public class PhoneServiceProvider extends DeviceServiceProvider<PhoneState> {
+public class PhoneSensorProvider extends DeviceServiceProvider<PhoneState> {
     @Override
     public Class<?> getServiceClass() {
-        return PhoneSensorsService.class;
+        return PhoneSensorService.class;
     }
 
     @Override
@@ -28,6 +29,6 @@ public class PhoneServiceProvider extends DeviceServiceProvider<PhoneState> {
 
     @Override
     public List<String> needsPermissions() {
-        return Arrays.asList(ACCESS_COARSE_LOCATION, WRITE_EXTERNAL_STORAGE);
+        return Arrays.asList(WRITE_EXTERNAL_STORAGE, READ_CALL_LOG, READ_SMS);
     }
 }

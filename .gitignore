@@ -97,6 +97,7 @@ modules.xml
 .idea/misc.xml
 *.ipr
 .idea/runConfigurations.xml
+.idea/inspectionProfiles
 
 ## Pebble 2
 .lock*
