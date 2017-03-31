@@ -138,9 +138,13 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         float y = event.values[1] / EARTH_GRAVITATIONAL_ACCELERATION;
         float z = event.values[2] / EARTH_GRAVITATIONAL_ACCELERATION;
         getState().setAcceleration(x, y, z);
-        // nanoseconds to seconds
-        double time = event.timestamp / 1_000_000_000d;
+        
         double timeReceived = System.currentTimeMillis() / 1_000d;
+        
+        // nanoseconds uptime to seconds utc by calculating
+        // current timestamp minus difference between current uptime and uptime at sensor event.
+        // this accounts for the event happing slightly before processing it here
+        double time = ( timeReceived - (System.nanoTime() - event.timestamp) / 1_000_000_000d );    
 
         send(accelerationTable, new PhoneAcceleration(time, timeReceived, x, y, z));
     }
@@ -148,9 +152,11 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     public void processLight(SensorEvent event) {
         float lightValue = event.values[0];
         getState().setLight(lightValue);
-        // nanoseconds to seconds
-        double time = event.timestamp / 1_000_000_000d;
+        
         double timeReceived = System.currentTimeMillis() / 1000d;
+        
+        // nanoseconds uptime to seconds utc
+        double time = ( timeReceived - (System.nanoTime() - event.timestamp) / 1_000_000_000d );      
 
         send(lightTable, new PhoneLight(time, timeReceived, lightValue));
     }
