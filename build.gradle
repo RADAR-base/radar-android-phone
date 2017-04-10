@@ -22,7 +22,7 @@ android {
         minSdkVersion 19
         targetSdkVersion 22
         versionCode 1
-        versionName '0.1-alpha.1'
+        versionName '0.1-alpha.2-SNAPSHOT'
     }
     buildTypes {
         release {
