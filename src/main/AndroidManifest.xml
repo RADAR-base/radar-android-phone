@@ -13,5 +13,6 @@
     <application android:allowBackup="true">
         <service android:name=".PhoneSensorService"/>
         <service android:name=".PhoneLocationService"/>
+        <service android:name=".PhoneLogService"/>
     </application>
 </manifest>
