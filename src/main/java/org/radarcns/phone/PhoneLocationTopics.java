@@ -25,7 +25,7 @@ public class PhoneLocationTopics extends DeviceTopics {
     private static final Object syncObject = new Object();
     private static PhoneLocationTopics instance = null;
 
-    private final AvroTopic<MeasurementKey, PhoneLocation> locationTopic;
+    private final AvroTopic<MeasurementKey, PhoneRelativeLocation> relativeLocationTopic;
 
     public static PhoneLocationTopics getInstance() {
         synchronized (syncObject) {
@@ -37,12 +37,12 @@ public class PhoneLocationTopics extends DeviceTopics {
     }
 
     private PhoneLocationTopics() {
-        locationTopic = createTopic("android_phone_location",
-                PhoneLocation.getClassSchema(),
-                PhoneLocation.class);
+        relativeLocationTopic = createTopic("android_phone_relative_location",
+                PhoneRelativeLocation.getClassSchema(),
+                PhoneRelativeLocation.class);
     }
 
-    public AvroTopic<MeasurementKey, PhoneLocation> getLocationTopic() {
-        return locationTopic;
+    public AvroTopic<MeasurementKey, PhoneRelativeLocation> getRelativeLocationTopic() {
+        return relativeLocationTopic;
     }
 }

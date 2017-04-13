@@ -59,7 +59,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         PROVIDER_TYPES.put(LocationManager.NETWORK_PROVIDER, LocationProvider.NETWORK);
     }
 
-    private final DataCache<MeasurementKey, PhoneLocation> locationTable;
+    private final DataCache<MeasurementKey, PhoneRelativeLocation> locationTable;
     private final LocationListener locationListener;
     private BigDecimal latitudeReference;
     private BigDecimal longitudeReference;
@@ -67,7 +67,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
 
     public PhoneLocationManager(PhoneLocationService context, TableDataHandler dataHandler, String groupId, String sourceId) {
         super(context, new BaseDeviceState(), dataHandler, groupId, sourceId);
-        this.locationTable = dataHandler.getCache(PhoneLocationTopics.getInstance().getLocationTopic());
+        this.locationTable = dataHandler.getCache(PhoneLocationTopics.getInstance().getRelativeLocationTopic());
 
         locationListener  = new LocationListener() {
             public void onLocationChanged(Location location) {
@@ -119,7 +119,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         float speed = location.hasSpeed() ? location.getSpeed() : Float.NaN;
         float bearing = location.hasBearing() ? location.getBearing() : Float.NaN;
 
-        PhoneLocation value = new PhoneLocation(
+        PhoneRelativeLocation value = new PhoneRelativeLocation(
                 eventTimestamp, timestamp, provider,
                 latitude, longitude,
                 altitude, accuracy, speed, bearing);
