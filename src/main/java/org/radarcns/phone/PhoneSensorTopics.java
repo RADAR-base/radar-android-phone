@@ -28,9 +28,6 @@ public class PhoneSensorTopics extends DeviceTopics {
     private final AvroTopic<MeasurementKey, PhoneAcceleration> accelerationTopic;
     private final AvroTopic<MeasurementKey, PhoneBatteryLevel> batteryLevelTopic;
     private final AvroTopic<MeasurementKey, PhoneLight> lightTopic;
-    private final AvroTopic<MeasurementKey, PhoneCall> callTopic;
-    private final AvroTopic<MeasurementKey, PhoneSms> smsTopic;
-    private final AvroTopic<MeasurementKey, PhoneLocation> locationTopic;
     private final AvroTopic<MeasurementKey, PhoneUserInteraction> interactionTopic;
 
     public static PhoneSensorTopics getInstance() {
@@ -52,15 +49,6 @@ public class PhoneSensorTopics extends DeviceTopics {
         lightTopic = createTopic("android_phone_light",
                 PhoneLight.getClassSchema(),
                 PhoneLight.class);
-        callTopic = createTopic("android_phone_call",
-                PhoneCall.getClassSchema(),
-                PhoneCall.class);
-        smsTopic = createTopic("android_phone_sms",
-                PhoneSms.getClassSchema(),
-                PhoneSms.class);
-        locationTopic = createTopic("android_phone_location",
-                PhoneLocation.getClassSchema(),
-                PhoneLocation.class);
         interactionTopic = createTopic("android_phone_user_interaction",
                 PhoneUserInteraction.getClassSchema(),
                 PhoneUserInteraction.class);
@@ -76,18 +64,6 @@ public class PhoneSensorTopics extends DeviceTopics {
 
     public AvroTopic<MeasurementKey, PhoneLight> getLightTopic() {
         return lightTopic;
-    }
-
-    public AvroTopic<MeasurementKey, PhoneCall> getCallTopic() {
-        return callTopic;
-    }
-
-    public AvroTopic<MeasurementKey, PhoneSms> getSmsTopic() {
-        return smsTopic;
-    }
-
-    public AvroTopic<MeasurementKey, PhoneLocation> getLocationTopic() {
-        return locationTopic;
     }
 
     public AvroTopic<MeasurementKey, PhoneUserInteraction> getUserInteractionTopic() {
