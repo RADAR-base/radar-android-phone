@@ -21,6 +21,9 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Process;
 import android.support.annotation.NonNull;
 
 import org.radarcns.android.data.DataCache;
@@ -39,7 +42,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, BaseDeviceState> {
+class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, BaseDeviceState> implements LocationListener {
     private static final Logger logger = LoggerFactory.getLogger(PhoneLocationManager.class);
 
     // storage with keys
@@ -60,27 +63,19 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
     }
 
     private final DataCache<MeasurementKey, PhoneRelativeLocation> locationTable;
-    private final LocationListener locationListener;
+    private final LocationManager locationManager;
     private BigDecimal latitudeReference;
     private BigDecimal longitudeReference;
     private double altitudeReference = Double.NaN;
+    private final HandlerThread handlerThread;
+    private Handler handler;
 
     public PhoneLocationManager(PhoneLocationService context, TableDataHandler dataHandler, String groupId, String sourceId) {
         super(context, new BaseDeviceState(), dataHandler, groupId, sourceId);
         this.locationTable = dataHandler.getCache(PhoneLocationTopics.getInstance().getRelativeLocationTopic());
 
-        locationListener  = new LocationListener() {
-            public void onLocationChanged(Location location) {
-                try {
-                    processLocation(location);
-                } catch (IOException ex) {
-                    logger.error("Failed to process updated location: relative location could not be stored", ex);
-                }
-            }
-            public void onStatusChanged(String provider, int status, Bundle extras) {}
-            public void onProviderEnabled(String provider) {}
-            public void onProviderDisabled(String provider) {}
-        };
+        locationManager = (LocationManager) getService().getSystemService(Context.LOCATION_SERVICE);
+        this.handlerThread = new HandlerThread("PhoneLocation", Process.THREAD_PRIORITY_BACKGROUND);
 
         setName(android.os.Build.MODEL);
         updateStatus(DeviceStatusListener.Status.READY);
@@ -88,19 +83,33 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
 
     @Override
     public void start(@NonNull Set<String> set) {
-        try {
-            // Location
-            setLocationUpdateRate(LOCATION_GPS_INTERVAL_DEFAULT, LOCATION_NETWORK_INTERVAL_DEFAULT);
-        } catch (IOException ex) {
-            logger.error("Failed to set up location tracking: relative location could not be stored", ex);
-        }
+        this.handlerThread.start();
+        this.handler = new Handler(this.handlerThread.getLooper());
+
+        // Location
+        setLocationUpdateRate(LOCATION_GPS_INTERVAL_DEFAULT, LOCATION_NETWORK_INTERVAL_DEFAULT);
         updateStatus(DeviceStatusListener.Status.CONNECTED);
     }
 
-    public void processLocation(Location location) throws IOException {
+    public void onLocationChanged(Location location) {
         if (location == null) {
             return;
         }
+
+        double latitude;
+        double longitude;
+        float altitude;
+
+        try {
+            // Coordinates in degrees from a new (random) reference point
+            latitude = getRelativeLatitude(location.getLatitude());
+            longitude = getRelativeLongitude(location.getLongitude());
+            altitude = location.hasAltitude() ? getRelativeAltitude(location.getAltitude()) : Float.NaN;
+        } catch (IOException ex) {
+            logger.error("Failed to process location {}: relative location could not be stored", location, ex);
+            return;
+        }
+
         double eventTimestamp = location.getTime() / 1000d;
         double timestamp = System.currentTimeMillis() / 1000d;
 
@@ -109,12 +118,6 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
             provider = LocationProvider.OTHER;
         }
 
-        // Coordinates in degrees from a new (random) reference point
-        double latitude = getRelativeLatitude(location.getLatitude());
-        double longitude = getRelativeLongitude(location.getLongitude());
-
-        // Meta data from GPS
-        float altitude = location.hasAltitude() ? getRelativeAltitude(location.getAltitude()) : Float.NaN;
         float accuracy = location.hasAccuracy() ? location.getAccuracy() : Float.NaN;
         float speed = location.hasSpeed() ? location.getSpeed() : Float.NaN;
         float bearing = location.hasBearing() ? location.getBearing() : Float.NaN;
@@ -129,26 +132,37 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
                 longitude, accuracy, altitude, speed, bearing, timestamp);
     }
 
-    public final synchronized void setLocationUpdateRate(final long periodGPS, final long periodNetwork) throws IOException {
-        // Remove updates, if any
-        LocationManager locationManager = (LocationManager) getService().getSystemService(Context.LOCATION_SERVICE);
-        locationManager.removeUpdates(locationListener);
+    public void onStatusChanged(String provider, int status, Bundle extras) {}
 
-        // Initialize with last known and start listening
-        if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            processLocation(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, periodGPS * 1000, 0, locationListener);
-            logger.info("Location GPS listener activated and set to a period of {}", periodGPS);
-        } else {
-            logger.warn("Location GPS listener not found");
-        }
-        if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-            processLocation(locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER));
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, periodNetwork * 1000, 0, locationListener);
-            logger.info("Location Network listener activated and set to a period of {}", periodNetwork);
-        } else {
-            logger.warn("Location Network listener not found");
-        }
+    public void onProviderEnabled(String provider) {}
+
+    public void onProviderDisabled(String provider) {}
+
+    public final synchronized void setLocationUpdateRate(final long periodGPS, final long periodNetwork) {
+        handler.post(new Runnable() {
+             @Override
+             public void run() {
+                 // Remove updates, if any
+                 locationManager.removeUpdates(PhoneLocationManager.this);
+
+                 // Initialize with last known and start listening
+                 if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                     onLocationChanged(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
+                     locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, periodGPS * 1000, 0, PhoneLocationManager.this);
+                     logger.info("Location GPS listener activated and set to a period of {}", periodGPS);
+                 } else {
+                     logger.warn("Location GPS listener not found");
+                 }
+
+                 if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                     onLocationChanged(locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER));
+                     locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, periodNetwork * 1000, 0, PhoneLocationManager.this);
+                     logger.info("Location Network listener activated and set to a period of {}", periodNetwork);
+                 } else {
+                     logger.warn("Location Network listener not found");
+                 }
+             }
+         });
     }
 
     private double getRelativeLatitude(double absoluteLatitude) throws IOException {
@@ -175,7 +189,6 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         return longitude.subtract(longitudeReference).doubleValue();
     }
 
-
     private float getRelativeAltitude(double absoluteAltitude) throws IOException {
         if (Double.isNaN(absoluteAltitude)) {
             return Float.NaN;
@@ -184,5 +197,20 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
             altitudeReference = Double.parseDouble(storage.getOrSet(ALTITUDE_REFERENCE, Double.toString(absoluteAltitude)));
         }
         return (float)(absoluteAltitude - altitudeReference);
+    }
+
+    public void close() throws IOException {
+        if (handler != null) {
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    locationManager.removeUpdates(PhoneLocationManager.this);
+                }
+            });
+            handler = null;
+            handlerThread.quitSafely();
+        }
+
+        super.close();
     }
 }
