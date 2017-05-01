@@ -26,7 +26,6 @@ import java.util.List;
 
 import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
-import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
 public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState> {
     @Override
@@ -46,7 +45,7 @@ public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState
 
     @Override
     public List<String> needsPermissions() {
-        return Arrays.asList(ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION, WRITE_EXTERNAL_STORAGE);
+        return Arrays.asList(ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION);
     }
 
     @Override
