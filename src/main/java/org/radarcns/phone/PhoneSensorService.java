@@ -17,11 +17,11 @@
 package org.radarcns.phone;
 
 import org.apache.avro.specific.SpecificRecord;
+import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 import org.radarcns.android.device.DeviceStatusListener;
-import org.radarcns.android.util.PersistentStorage;
 import org.radarcns.key.MeasurementKey;
 import org.radarcns.topic.AvroTopic;
 
@@ -62,7 +62,7 @@ public class PhoneSensorService extends DeviceService {
 
     public String getSourceId() {
         if (sourceId == null) {
-            sourceId = new PersistentStorage(getClass()).loadOrStoreUUID(SOURCE_ID_KEY);
+            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
         }
         return sourceId;
     }

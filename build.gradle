@@ -22,7 +22,7 @@ android {
         minSdkVersion 19
         targetSdkVersion 22
         versionCode 1
-        versionName '0.1-alpha.2-SNAPSHOT'
+        versionName '0.1-alpha.2'
     }
     buildTypes {
         release {
@@ -72,7 +72,6 @@ repositories {
 }
 
 dependencies {
-    compile 'com.android.support:appcompat-v7:22.2.0'
     compile 'org.radarcns:radar-commons-android:0.1'
     compile 'org.radarcns:radar-schemas-commons:0.1'
 
