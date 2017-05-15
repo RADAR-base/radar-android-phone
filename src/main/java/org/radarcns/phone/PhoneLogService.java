@@ -20,7 +20,6 @@ import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
-import org.radarcns.android.device.DeviceStatusListener;
 
 import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
 
@@ -34,9 +33,7 @@ public class PhoneLogService extends DeviceService {
 
     @Override
     protected BaseDeviceState getDefaultState() {
-        BaseDeviceState state = new BaseDeviceState();
-        state.setStatus(DeviceStatusListener.Status.DISCONNECTED);
-        return state;
+        return new BaseDeviceState();
     }
 
     @Override
