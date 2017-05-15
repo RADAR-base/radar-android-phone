@@ -21,23 +21,23 @@ import org.radarcns.key.MeasurementKey;
 import org.radarcns.topic.AvroTopic;
 
 /** Topic manager for topics concerning the Phone sensors. */
-public class PhoneEventTopics extends DeviceTopics {
+public class PhoneUsageTopics extends DeviceTopics {
     private static final Object syncObject = new Object();
-    private static PhoneEventTopics instance = null;
+    private static PhoneUsageTopics instance = null;
 
     private final AvroTopic<MeasurementKey, PhoneUserInteraction> interactionTopic;
     private final AvroTopic<MeasurementKey, PhoneUsageEvent> usageEventTopic;
 
-    public static PhoneEventTopics getInstance() {
+    public static PhoneUsageTopics getInstance() {
         synchronized (syncObject) {
             if (instance == null) {
-                instance = new PhoneEventTopics();
+                instance = new PhoneUsageTopics();
             }
             return instance;
         }
     }
 
-    private PhoneEventTopics() {
+    private PhoneUsageTopics() {
         interactionTopic = createTopic("android_phone_user_interaction",
                 PhoneUserInteraction.getClassSchema(),
                 PhoneUserInteraction.class);

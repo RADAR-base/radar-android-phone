@@ -16,16 +16,18 @@
 
 package org.radarcns.phone;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.usage.UsageEvents;
 import android.app.usage.UsageStatsManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.support.annotation.NonNull;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 import org.radarcns.android.data.DataCache;
 import org.radarcns.android.data.TableDataHandler;
@@ -33,14 +35,15 @@ import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
 import org.radarcns.key.MeasurementKey;
-import org.radarcns.phoneUtil.PlayStoreParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 
-class PhoneEventManager extends AbstractDeviceManager<PhoneEventService, BaseDeviceState> {
-    private static final Logger logger = LoggerFactory.getLogger(PhoneEventManager.class);
+import static android.content.Context.ALARM_SERVICE;
+
+class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDeviceState> {
+    private static final Logger logger = LoggerFactory.getLogger(PhoneUsageManager.class);
 
     private UsageStatsManager usageStatsManager;
     private UsageEvents.Event lastUsageEvent;
@@ -50,17 +53,16 @@ class PhoneEventManager extends AbstractDeviceManager<PhoneEventService, BaseDev
     private final DataCache<MeasurementKey, PhoneUsageEvent> usageEventTable;
 
     private static final long USAGE_EVENT_PERIOD_DEFAULT = 60; // seconds
-    private ScheduledFuture<?> usageEventFuture;
-    private final ScheduledExecutorService executor;
 
-    public PhoneEventManager(PhoneEventService context, TableDataHandler dataHandler, String groupId, String sourceId) {
+    private PhoneUsageService context;
+
+    public PhoneUsageManager(PhoneUsageService context, TableDataHandler dataHandler, String groupId, String sourceId) {
         super(context, new BaseDeviceState(), dataHandler, groupId, sourceId);
-        PhoneEventTopics topics = PhoneEventTopics.getInstance();
+
+        this.context = context;
+        PhoneUsageTopics topics = PhoneUsageTopics.getInstance();
         this.userInteractionTable = dataHandler.getCache(topics.getUserInteractionTopic());
         this.usageEventTable = dataHandler.getCache(topics.getUsageEventTopic());
-
-        // Scheduler TODO: run executor with existing thread pool/factory
-        executor = Executors.newSingleThreadScheduledExecutor();
 
         usageStatsManager = (UsageStatsManager) context.getSystemService("usagestats");
 
@@ -75,23 +77,25 @@ class PhoneEventManager extends AbstractDeviceManager<PhoneEventService, BaseDev
     }
 
     public final synchronized void setUsageEventUpdateRate(final long period) {
-        if (usageEventFuture != null) {
-            usageEventFuture.cancel(false);
-        }
+        // Create an intent and alarm that will be wrapped in PendingIntent
+        Intent intent = new Intent("ACTIVITY_LAUNCH_WAKE");
 
-        this.loadLastUsageEvent();
-        usageEventFuture = executor.scheduleAtFixedRate(new Runnable() {
+        // Create the pending intent and wrap our intent
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this.context, 1, intent, 0);
+
+        // Get alarm manager and schedule it to go off every period (seconds)
+        AlarmManager alarmManager = (AlarmManager) this.context.getSystemService(ALARM_SERVICE);
+        alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), period * 1000, pendingIntent);
+
+        // Activity to perform when alarm is triggered
+        this.context.registerReceiver(new BroadcastReceiver() {
             @Override
-            public void run() {
-                try {
-                    processUsageEvents();
-                } catch (Exception ex) {
-                    logger.error("Failed to read or write last call processed {}", ex.toString());
-                }
+            public void onReceive(Context context, Intent intent) {
+                processUsageEvents();
             }
-        }, 0, period, TimeUnit.SECONDS);
+        }, new IntentFilter("ACTIVITY_LAUNCH_WAKE"));
 
-        logger.info("Usage Event listener activated and set to a period of {}", period);
+        logger.info("Usage Event alarm activated and set to a period of {}", period);
     }
 
     private void processUsageEvents() {
@@ -114,6 +118,7 @@ class PhoneEventManager extends AbstractDeviceManager<PhoneEventService, BaseDev
                 // Send this closing event
                 if (lastUsageEvent != null && !lastUsageEventIsSent)
                     sendUsageEvent(lastUsageEvent);
+
                 // Send the opening of new event
                 sendUsageEvent(usageEvent);
                 lastUsageEventIsSent = true;
@@ -122,7 +127,7 @@ class PhoneEventManager extends AbstractDeviceManager<PhoneEventService, BaseDev
             }
 
             // If not already processed, save
-            updateLastUsageEvent(lastUsageEvent);
+            updateLastUsageEvent(usageEvent);
 
             usageEvent = new UsageEvents.Event();
         }
@@ -160,12 +165,14 @@ class PhoneEventManager extends AbstractDeviceManager<PhoneEventService, BaseDev
         String out = String.format(
                 "[%3$d] %1$s\n" +
                         "\t\t %2$s (%4$d)\n" +
-                        "\t\t %5$s\n",
+                        "\t\t %5$s\n" +
+                        "\t\t %6$s\n",
                 event.getPackageName(),
                 timeStamp.toString(),
                 event.getEventType(),
                 event.getTimeStamp(),
-                event.getClassName()
+                event.getClassName(),
+                "" //PlayStoreParser.fetchCategory(event.getPackageName())
         );
         logger.info(out);
     }

@@ -27,10 +27,10 @@ import static android.Manifest.permission.INTERNET;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 //import static android.Manifest.permission.PACKAGE_USAGE_STATS;
 
-public class PhoneEventProvider extends DeviceServiceProvider<PhoneState> {
+public class PhoneUsageProvider extends DeviceServiceProvider<PhoneState> {
     @Override
     public Class<?> getServiceClass() {
-        return PhoneEventService.class;
+        return PhoneUsageService.class;
     }
 
     @Override

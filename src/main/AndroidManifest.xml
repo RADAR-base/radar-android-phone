@@ -15,6 +15,6 @@
         <service android:name=".PhoneSensorService"/>
         <service android:name=".PhoneLocationService"/>
         <service android:name=".PhoneLogService"/>
-        <service android:name=".PhoneEventService"/>
+        <service android:name=".PhoneUsageService"/>
     </application>
 </manifest>
