@@ -34,10 +34,12 @@ import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
+import org.radarcns.android.util.PersistentStorage;
 import org.radarcns.key.MeasurementKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Properties;
 import java.util.Set;
 
 import static android.content.Context.ALARM_SERVICE;
@@ -46,8 +48,17 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     private static final Logger logger = LoggerFactory.getLogger(PhoneUsageManager.class);
 
     private UsageStatsManager usageStatsManager;
-    private UsageEvents.Event lastUsageEvent;
-    private boolean lastUsageEventIsSent;
+
+    private String previousEventPackageName;
+    private Long previousEventTimestamp;
+    private Integer previousEventType;
+    private boolean previousEventIsSent = false;
+
+    private static final String PACKAGE_NAME = "package_name";
+    private static final String TIMESTAMP = "timestamp";
+    private static final String EVENT_TYPE = "event_type";
+    private static final String IS_SENT = "is_sent";
+    private PersistentStorage persistentStorage = new PersistentStorage(this.getClass());
 
     private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
     private final DataCache<MeasurementKey, PhoneUsageEvent> usageEventTable;
@@ -65,7 +76,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         this.usageEventTable = dataHandler.getCache(topics.getUsageEventTopic());
 
         usageStatsManager = (UsageStatsManager) context.getSystemService("usagestats");
-        this.loadLastUsageEvent();
+        this.loadPreviousEvent();
 
         setName(android.os.Build.MODEL);
         updateStatus(DeviceStatusListener.Status.READY);
@@ -100,9 +111,9 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     }
 
     private void processUsageEvents() {
-        // Get events from last event to now
+        // Get events from previous event to now
         // TODO: do not get events earlier than RADAR-CNS app install
-        final long queryStartTime = lastUsageEvent == null ? 0 : lastUsageEvent.getTimeStamp();
+        final long queryStartTime = previousEventPackageName == null ? 0 : previousEventTimestamp;
         final long queryEndTime = System.currentTimeMillis();
         UsageEvents usageEvents = usageStatsManager.queryEvents(queryStartTime, queryEndTime);
 
@@ -117,10 +128,10 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
 
             boolean isSent = false;
             if (isNewUsageEvent(usageEvent)) {
-                // New event, so last event was a closing of the previous event (?)
+                // New event, so previous event was a closing of the previous event (?)
                 // Send this closing event
-                if (lastUsageEvent != null && !lastUsageEventIsSent)
-                    sendUsageEvent(lastUsageEvent);
+                if (previousEventPackageName != null && !previousEventIsSent)
+                    sendUsageEvent(previousEventPackageName, previousEventTimestamp, previousEventType);
 
                 // Send the opening of new event
                 sendUsageEvent(usageEvent);
@@ -128,54 +139,78 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
             }
 
             // If not already processed, save
-            updateLastUsageEvent(usageEvent, isSent);
+            updatePreviousUsageEvent(usageEvent, isSent);
 
             usageEvent = new UsageEvents.Event();
         }
     }
 
     private boolean isNewUsageEvent(UsageEvents.Event event) {
-        if (lastUsageEvent == null) {
+        if (previousEventPackageName == null) {
             return true;
         }
-        boolean isDifferentPackage = ! event.getPackageName().equals(lastUsageEvent.getPackageName());
-        boolean isNotProcessed = event.getTimeStamp() >= lastUsageEvent.getTimeStamp();
+        boolean isDifferentPackage = ! event.getPackageName().equals(previousEventPackageName);
+        boolean isNotProcessed = event.getTimeStamp() >= previousEventTimestamp;
 
         return isDifferentPackage && isNotProcessed;
     }
 
-    private void loadLastUsageEvent() {
-        // TODO: load from internal storage
-        lastUsageEvent = null;
+    private void updatePreviousUsageEvent(UsageEvents.Event event, boolean isSent) {
+        // Update if this event newer than recorded previous event
+        if (previousEventPackageName == null || event.getTimeStamp() >= previousEventTimestamp) {
+            previousEventPackageName = event.getPackageName();
+            previousEventTimestamp = event.getTimeStamp();
+            previousEventType = event.getEventType();
+            previousEventIsSent = isSent;
+            storePreviousEvent();
+        }
     }
 
-    private void storeLastUsageEvent() {
-        // TODO: store on internal storage
+    private void storePreviousEvent() {
+        Properties properties = new Properties();
+        properties.setProperty(PACKAGE_NAME, previousEventPackageName);
+        properties.setProperty(TIMESTAMP, Long.toString(previousEventTimestamp));
+        properties.setProperty(EVENT_TYPE, Integer.toString(previousEventType));
+        properties.setProperty(IS_SENT, Boolean.toString(previousEventIsSent));
+
+        try {
+            persistentStorage.store(properties);
+        } catch (IOException ex) {
+            logger.warn("Unable to store the previous event.", ex);
+        }
     }
 
-    private void updateLastUsageEvent(UsageEvents.Event event, boolean isSent) {
-        // Update if this event newer than recorded lastUsageEvent
-        if (lastUsageEvent == null || event.getTimeStamp() >= lastUsageEvent.getTimeStamp()) {
-            lastUsageEvent = event;
-            lastUsageEventIsSent = isSent;
-            storeLastUsageEvent();
+    private void loadPreviousEvent() {
+        Properties propertiesDefault = new Properties();
+        try {
+            Properties propertiesOut = persistentStorage.loadOrStore(propertiesDefault);
+            previousEventPackageName = propertiesOut.getProperty(PACKAGE_NAME);
+            previousEventTimestamp = Long.valueOf(propertiesOut.getProperty(TIMESTAMP));
+            previousEventType = Integer.valueOf(propertiesOut.getProperty(EVENT_TYPE));
+            previousEventIsSent = Boolean.valueOf(propertiesOut.getProperty(IS_SENT));
+        } catch (IOException | NumberFormatException | NullPointerException ex) {
+            logger.warn("Unable to load the previous event.", ex);
+            previousEventPackageName = null;
+            previousEventTimestamp = null;
+            previousEventType = null;
+            previousEventIsSent = false;
         }
     }
 
     private void sendUsageEvent(UsageEvents.Event event) {
-        Date timeStamp = new Date(event.getTimeStamp());
+        sendUsageEvent(event.getPackageName(), event.getTimeStamp(), event.getEventType());
+    }
+    
+    private void sendUsageEvent(String packageName, long timeStamp, int eventType) {
+        Date date = new Date(timeStamp);
 
         String out = String.format(
                 "[%3$d] %1$s\n" +
-                        "\t\t %2$s (%4$d)\n" +
-                        "\t\t %5$s\n" +
-                        "\t\t %6$s\n",
-                event.getPackageName(),
-                timeStamp.toString(),
-                event.getEventType(),
-                event.getTimeStamp(),
-                event.getClassName(),
-                "" //PlayStoreParser.fetchCategory(event.getPackageName())
+                "\t\t %2$s (%4$d)\n",
+                packageName,
+                date.toString(),
+                eventType,
+                timeStamp
         );
         logger.info(out);
     }
