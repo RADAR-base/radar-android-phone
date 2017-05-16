@@ -7,7 +7,7 @@ package org.radarcns.phone;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public enum UsageEventType {
-  FOREGROUND, BACKGROUND, OTHER  ;
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"enum\",\"name\":\"UsageEventType\",\"namespace\":\"org.radarcns.phone\",\"symbols\":[\"FOREGROUND\",\"BACKGROUND\",\"OTHER\"]}");
+  FOREGROUND, BACKGROUND, CONFIG, SHORTCUT, INTERACTION, NONE  ;
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"enum\",\"name\":\"UsageEventType\",\"namespace\":\"org.radarcns.phone\",\"symbols\":[\"FOREGROUND\",\"BACKGROUND\",\"CONFIG\",\"SHORTCUT\",\"INTERACTION\",\"NONE\"]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
 }

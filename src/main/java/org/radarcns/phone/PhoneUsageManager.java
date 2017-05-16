@@ -26,6 +26,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
+import android.util.SparseArray;
 
 import java.io.IOException;
 import java.util.Date;
@@ -35,12 +36,10 @@ import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
-import org.radarcns.android.util.PersistentStorage;
 import org.radarcns.key.MeasurementKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Properties;
 import java.util.Set;
 
 import static android.content.Context.ALARM_SERVICE;
@@ -49,6 +48,18 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     private static final Logger logger = LoggerFactory.getLogger(PhoneUsageManager.class);
 
     private UsageStatsManager usageStatsManager;
+
+    private static final SparseArray<UsageEventType> EVENT_TYPES = new SparseArray<>(4);
+    static {
+        EVENT_TYPES.append(UsageEvents.Event.MOVE_TO_FOREGROUND, UsageEventType.FOREGROUND);
+        EVENT_TYPES.append(UsageEvents.Event.MOVE_TO_BACKGROUND, UsageEventType.BACKGROUND);
+        EVENT_TYPES.append(UsageEvents.Event.CONFIGURATION_CHANGE, UsageEventType.CONFIG);
+        EVENT_TYPES.append(UsageEvents.Event.NONE, UsageEventType.NONE);
+        if (android.os.Build.VERSION.SDK_INT >= 25) {
+            EVENT_TYPES.append(UsageEvents.Event.SHORTCUT_INVOCATION, UsageEventType.SHORTCUT);
+            EVENT_TYPES.append(UsageEvents.Event.USER_INTERACTION, UsageEventType.INTERACTION);
+        }
+    }
 
     private String previousEventPackageName;
     private Long previousEventTimestamp;
@@ -64,7 +75,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
 //    private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
     private final DataCache<MeasurementKey, PhoneUsageEvent> usageEventTable;
 
-    private static final long USAGE_EVENT_PERIOD_DEFAULT = 6; // seconds
+    private static final long USAGE_EVENT_PERIOD_DEFAULT = 60*60; // one hour
 
     private PhoneUsageService context;
 
@@ -73,7 +84,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
 
         this.context = context;
         PhoneUsageTopics topics = PhoneUsageTopics.getInstance();
-        this.userInteractionTable = dataHandler.getCache(topics.getUserInteractionTopic());
+//        this.userInteractionTable = dataHandler.getCache(topics.getUserInteractionTopic());
         this.usageEventTable = dataHandler.getCache(topics.getUsageEventTopic());
 
         usageStatsManager = (UsageStatsManager) context.getSystemService("usagestats");
@@ -203,14 +214,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     
     private void sendUsageEvent(String packageName, long timeStamp, int eventType) {
         // Event type conversion to Schema defined
-        UsageEventType usageEventType;
-        if (eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
-            usageEventType = UsageEventType.FOREGROUND;
-        } else if (eventType == UsageEvents.Event.MOVE_TO_BACKGROUND) {
-            usageEventType = UsageEventType.BACKGROUND;
-        } else {
-            usageEventType = UsageEventType.OTHER;
-        }
+        UsageEventType usageEventType = EVENT_TYPES.get(eventType, UsageEventType.NONE);
 
         double timeReceived = System.currentTimeMillis() / 1000d;
         PhoneUsageEvent value = new PhoneUsageEvent(

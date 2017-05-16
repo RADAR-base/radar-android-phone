@@ -16,11 +16,11 @@
 
 package org.radarcns.phone;
 
+import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 import org.radarcns.android.device.DeviceStatusListener;
-import org.radarcns.android.util.PersistentStorage;
 
 import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
 
