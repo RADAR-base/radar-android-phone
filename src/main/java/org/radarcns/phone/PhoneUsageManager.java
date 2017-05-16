@@ -52,7 +52,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
     private final DataCache<MeasurementKey, PhoneUsageEvent> usageEventTable;
 
-    private static final long USAGE_EVENT_PERIOD_DEFAULT = 60; // seconds
+    private static final long USAGE_EVENT_PERIOD_DEFAULT = 6; // seconds
 
     private PhoneUsageService context;
 
@@ -65,6 +65,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         this.usageEventTable = dataHandler.getCache(topics.getUsageEventTopic());
 
         usageStatsManager = (UsageStatsManager) context.getSystemService("usagestats");
+        this.loadLastUsageEvent();
 
         setName(android.os.Build.MODEL);
         updateStatus(DeviceStatusListener.Status.READY);
@@ -83,7 +84,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         // Create the pending intent and wrap our intent
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this.context, 1, intent, 0);
 
-        // Get alarm manager and schedule it to go off every period (seconds)
+        // Get alarm manager and schedule it to run every period (seconds)
         AlarmManager alarmManager = (AlarmManager) this.context.getSystemService(ALARM_SERVICE);
         alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), period * 1000, pendingIntent);
 
@@ -95,16 +96,17 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
             }
         }, new IntentFilter("ACTIVITY_LAUNCH_WAKE"));
 
-        logger.info("Usage Event alarm activated and set to a period of {}", period);
+        logger.info("Usage event alarm activated and set to a period of {} seconds", period);
     }
 
     private void processUsageEvents() {
         // Get events from last event to now
+        // TODO: do not get events earlier than RADAR-CNS app install
         final long queryStartTime = lastUsageEvent == null ? 0 : lastUsageEvent.getTimeStamp();
         final long queryEndTime = System.currentTimeMillis();
         UsageEvents usageEvents = usageStatsManager.queryEvents(queryStartTime, queryEndTime);
 
-        // Loop through all events
+        // Loop through all events, send opening and closing of app
         // Assume events are ordered on timestamp in ascending order (old to new)
         UsageEvents.Event usageEvent = new UsageEvents.Event();
         while (usageEvents.getNextEvent(usageEvent)) {
@@ -113,6 +115,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
                 continue;
             }
 
+            boolean isSent = false;
             if (isNewUsageEvent(usageEvent)) {
                 // New event, so last event was a closing of the previous event (?)
                 // Send this closing event
@@ -121,13 +124,11 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
 
                 // Send the opening of new event
                 sendUsageEvent(usageEvent);
-                lastUsageEventIsSent = true;
-            } else {
-                lastUsageEventIsSent = false;  // if old event that has already been sent, then this is not true
+                isSent = true;
             }
 
             // If not already processed, save
-            updateLastUsageEvent(usageEvent);
+            updateLastUsageEvent(usageEvent, isSent);
 
             usageEvent = new UsageEvents.Event();
         }
@@ -144,6 +145,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     }
 
     private void loadLastUsageEvent() {
+        // TODO: load from internal storage
         lastUsageEvent = null;
     }
 
@@ -151,10 +153,11 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         // TODO: store on internal storage
     }
 
-    private void updateLastUsageEvent(UsageEvents.Event event) {
+    private void updateLastUsageEvent(UsageEvents.Event event, boolean isSent) {
         // Update if this event newer than recorded lastUsageEvent
         if (lastUsageEvent == null || event.getTimeStamp() >= lastUsageEvent.getTimeStamp()) {
             lastUsageEvent = event;
+            lastUsageEventIsSent = isSent;
             storeLastUsageEvent();
         }
     }
