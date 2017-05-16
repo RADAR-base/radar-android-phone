@@ -50,7 +50,7 @@ public class PhoneUsageService extends DeviceService {
 
     public String getSourceId() {
         if (sourceId == null) {
-            sourceId = new PersistentStorage(getClass()).loadOrStoreUUID(SOURCE_ID_KEY);
+            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
         }
         return sourceId;
     }

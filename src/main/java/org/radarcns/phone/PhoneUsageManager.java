@@ -24,6 +24,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
 
 import java.io.IOException;
@@ -54,13 +55,13 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     private Integer previousEventType;
     private boolean previousEventIsSent = false;
 
-    private static final String PACKAGE_NAME = "package_name";
-    private static final String TIMESTAMP = "timestamp";
-    private static final String EVENT_TYPE = "event_type";
-    private static final String IS_SENT = "is_sent";
-    private PersistentStorage persistentStorage = new PersistentStorage(this.getClass());
+    private SharedPreferences preferences;
+    private static final String PREVIOUS_PACKAGE_NAME = "package_name";
+    private static final String PREVIOUS_TIMESTAMP = "timestamp";
+    private static final String PREVIOUS_EVENT_TYPE = "event_type";
+    private static final String PREVIOUS_IS_SENT = "is_sent";
 
-    private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
+//    private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
     private final DataCache<MeasurementKey, PhoneUsageEvent> usageEventTable;
 
     private static final long USAGE_EVENT_PERIOD_DEFAULT = 6; // seconds
@@ -76,6 +77,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         this.usageEventTable = dataHandler.getCache(topics.getUsageEventTopic());
 
         usageStatsManager = (UsageStatsManager) context.getSystemService("usagestats");
+        this.preferences = context.getSharedPreferences(PhoneUsageService.class.getName(), Context.MODE_PRIVATE);
         this.loadPreviousEvent();
 
         setName(android.os.Build.MODEL);
@@ -169,29 +171,25 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     }
 
     private void storePreviousEvent() {
-        Properties properties = new Properties();
-        properties.setProperty(PACKAGE_NAME, previousEventPackageName);
-        properties.setProperty(TIMESTAMP, Long.toString(previousEventTimestamp));
-        properties.setProperty(EVENT_TYPE, Integer.toString(previousEventType));
-        properties.setProperty(IS_SENT, Boolean.toString(previousEventIsSent));
-
-        try {
-            persistentStorage.store(properties);
-        } catch (IOException ex) {
-            logger.warn("Unable to store the previous event.", ex);
-        }
+        preferences.edit()
+                .putString(PREVIOUS_PACKAGE_NAME, previousEventPackageName)
+                .putLong(PREVIOUS_TIMESTAMP, previousEventTimestamp)
+                .putInt(PREVIOUS_EVENT_TYPE, previousEventType)
+                .putBoolean(PREVIOUS_IS_SENT, previousEventIsSent)
+                .apply();
     }
 
     private void loadPreviousEvent() {
-        Properties propertiesDefault = new Properties();
-        try {
-            Properties propertiesOut = persistentStorage.loadOrStore(propertiesDefault);
-            previousEventPackageName = propertiesOut.getProperty(PACKAGE_NAME);
-            previousEventTimestamp = Long.valueOf(propertiesOut.getProperty(TIMESTAMP));
-            previousEventType = Integer.valueOf(propertiesOut.getProperty(EVENT_TYPE));
-            previousEventIsSent = Boolean.valueOf(propertiesOut.getProperty(IS_SENT));
-        } catch (IOException | NumberFormatException | NullPointerException ex) {
-            logger.warn("Unable to load the previous event.", ex);
+        if (preferences.contains(PREVIOUS_PACKAGE_NAME)
+                && preferences.contains(PREVIOUS_EVENT_TYPE)
+                && preferences.contains(PREVIOUS_TIMESTAMP)
+                && preferences.contains(PREVIOUS_IS_SENT)) {
+            previousEventPackageName = preferences.getString(PREVIOUS_PACKAGE_NAME, null);
+            previousEventTimestamp = preferences.getLong(PREVIOUS_TIMESTAMP, 0);
+            previousEventType = preferences.getInt(PREVIOUS_EVENT_TYPE, 0);
+            previousEventIsSent = preferences.getBoolean(PREVIOUS_IS_SENT,false);
+        } else {
+            logger.warn("Unable to load the previous event details");
             previousEventPackageName = null;
             previousEventTimestamp = null;
             previousEventType = null;
@@ -204,6 +202,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     }
     
     private void sendUsageEvent(String packageName, long timeStamp, int eventType) {
+        // Event type conversion to Schema defined
         UsageEventType usageEventType;
         if (eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
             usageEventType = UsageEventType.FOREGROUND;
