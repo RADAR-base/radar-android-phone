@@ -143,6 +143,9 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
 
             usageEvent = new UsageEvents.Event();
         }
+
+        // Store the last previous event on internal memory for the next run
+        this.storePreviousEvent();
     }
 
     private boolean isNewUsageEvent(UsageEvents.Event event) {
@@ -162,7 +165,6 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
             previousEventTimestamp = event.getTimeStamp();
             previousEventType = event.getEventType();
             previousEventIsSent = isSent;
-            storePreviousEvent();
         }
     }
 
@@ -202,17 +204,21 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     }
     
     private void sendUsageEvent(String packageName, long timeStamp, int eventType) {
-        Date date = new Date(timeStamp);
+        UsageEventType usageEventType;
+        if (eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+            usageEventType = UsageEventType.FOREGROUND;
+        } else if (eventType == UsageEvents.Event.MOVE_TO_BACKGROUND) {
+            usageEventType = UsageEventType.BACKGROUND;
+        } else {
+            usageEventType = UsageEventType.OTHER;
+        }
 
-        String out = String.format(
-                "[%3$d] %1$s\n" +
-                "\t\t %2$s (%4$d)\n",
-                packageName,
-                date.toString(),
-                eventType,
-                timeStamp
-        );
-        logger.info(out);
+        double timeReceived = System.currentTimeMillis() / 1000d;
+        PhoneUsageEvent value = new PhoneUsageEvent(
+                timeStamp / 1000d, timeReceived, packageName, "", usageEventType);
+        send(usageEventTable, value);
+
+        logger.info("Event: [{}] {}\n\t{}", eventType, packageName, new Date(timeStamp));
     }
 
     @Override
