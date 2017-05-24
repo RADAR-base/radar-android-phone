@@ -28,7 +28,6 @@ public class PhoneSensorTopics extends DeviceTopics {
     private final AvroTopic<MeasurementKey, PhoneAcceleration> accelerationTopic;
     private final AvroTopic<MeasurementKey, PhoneBatteryLevel> batteryLevelTopic;
     private final AvroTopic<MeasurementKey, PhoneLight> lightTopic;
-    private final AvroTopic<MeasurementKey, PhoneUserInteraction> interactionTopic;
 
     public static PhoneSensorTopics getInstance() {
         synchronized (syncObject) {
@@ -49,9 +48,6 @@ public class PhoneSensorTopics extends DeviceTopics {
         lightTopic = createTopic("android_phone_light",
                 PhoneLight.getClassSchema(),
                 PhoneLight.class);
-        interactionTopic = createTopic("android_phone_user_interaction",
-                PhoneUserInteraction.getClassSchema(),
-                PhoneUserInteraction.class);
     }
 
     public AvroTopic<MeasurementKey, PhoneAcceleration> getAccelerationTopic() {
@@ -64,9 +60,5 @@ public class PhoneSensorTopics extends DeviceTopics {
 
     public AvroTopic<MeasurementKey, PhoneLight> getLightTopic() {
         return lightTopic;
-    }
-
-    public AvroTopic<MeasurementKey, PhoneUserInteraction> getUserInteractionTopic() {
-        return interactionTopic;
     }
 }

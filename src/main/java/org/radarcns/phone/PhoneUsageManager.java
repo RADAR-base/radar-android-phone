@@ -72,8 +72,8 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     private static final String PREVIOUS_EVENT_TYPE = "event_type";
     private static final String PREVIOUS_IS_SENT = "is_sent";
 
-//    private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
     private final DataCache<MeasurementKey, PhoneUsageEvent> usageEventTable;
+    private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
 
     private static final long USAGE_EVENT_PERIOD_DEFAULT = 60*60; // one hour
 
@@ -84,8 +84,8 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
 
         this.context = context;
         PhoneUsageTopics topics = PhoneUsageTopics.getInstance();
-//        this.userInteractionTable = dataHandler.getCache(topics.getUserInteractionTopic());
         this.usageEventTable = dataHandler.getCache(topics.getUsageEventTopic());
+        this.userInteractionTable = dataHandler.getCache(topics.getUserInteractionTopic());
 
         usageStatsManager = (UsageStatsManager) context.getSystemService("usagestats");
         this.preferences = context.getSharedPreferences(PhoneUsageService.class.getName(), Context.MODE_PRIVATE);
@@ -97,8 +97,42 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
 
     @Override
     public void start(@NonNull final Set<String> acceptableIds) {
-        setUsageEventUpdateRate(USAGE_EVENT_PERIOD_DEFAULT); // Every second
+        // Start query of usage events
+        setUsageEventUpdateRate(USAGE_EVENT_PERIOD_DEFAULT);
+
+        // Listen for screen lock/unlock events
+        IntentFilter screenStateFilter = new IntentFilter();
+        screenStateFilter.addAction(Intent.ACTION_USER_PRESENT); // unlock
+        screenStateFilter.addAction(Intent.ACTION_SCREEN_OFF); // lock
+        getService().registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent.getAction().equals(Intent.ACTION_USER_PRESENT) ||
+                        intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
+                    processInteractionState(intent);
+                }
+            }
+        }, screenStateFilter);
+
         updateStatus(DeviceStatusListener.Status.CONNECTED);
+    }
+
+
+    public void processInteractionState(Intent intent) {
+        PhoneLockState state;
+
+        if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
+            state = PhoneLockState.STANDBY;
+        } else {
+            state = PhoneLockState.UNLOCKED;
+        }
+
+        double timestamp = System.currentTimeMillis() / 1000d;
+        PhoneUserInteraction value = new PhoneUserInteraction(
+                timestamp, timestamp, state);
+        send(userInteractionTable, value);
+
+        logger.debug("Interaction State: {} {}", timestamp, state);
     }
 
     public final synchronized void setUsageEventUpdateRate(final long period) {
@@ -221,7 +255,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
                 timeStamp / 1000d, timeReceived, packageName, "", usageEventType);
         send(usageEventTable, value);
 
-        logger.info("Event: [{}] {}\n\t{}", eventType, packageName, new Date(timeStamp));
+        logger.debug("Event: [{}] {}\n\t{}", eventType, packageName, new Date(timeStamp));
     }
 
     @Override
