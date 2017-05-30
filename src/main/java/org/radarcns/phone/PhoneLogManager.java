@@ -16,10 +16,20 @@
 
 package org.radarcns.phone;
 
+import android.Manifest;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.provider.CallLog;
 import android.provider.Telephony;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.util.Base64;
 import android.util.SparseArray;
 
@@ -28,7 +38,6 @@ import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
-import org.radarcns.android.util.PersistentStorage;
 import org.radarcns.key.MeasurementKey;
 import org.radarcns.util.Serialization;
 import org.slf4j.Logger;
@@ -40,24 +49,23 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import static android.content.Context.ALARM_SERVICE;
+
 public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, BaseDeviceState> {
     private static final Logger logger = LoggerFactory.getLogger(PhoneLogManager.class);
-    private static final PersistentStorage storage = new PersistentStorage(PhoneSensorManager.class);
+    private final SharedPreferences preferences;
 
     private static final SparseArray<PhoneCallType> CALL_TYPES = new SparseArray<>(4);
     private static final SparseArray<PhoneSmsType> SMS_TYPES = new SparseArray<>(7);
     private static final String LAST_SMS_KEY = "last.sms.time";
     private static final String LAST_CALL_KEY = "last.call.time";
     private static final String HASH_KEY = "hash.key";
-    private static final long CALL_SMS_LOG_INTERVAL_DEFAULT = 24*60*60; // seconds
+    private static final String ACTIVITY_LAUNCH_WAKE = "ACTIVITY_LAUNCH_WAKE";
+    private static final long CALL_SMS_LOG_INTERVAL_DEFAULT = 24 * 60 * 60; // seconds
 
     static {
         CALL_TYPES.append(CallLog.Calls.INCOMING_TYPE, PhoneCallType.INCOMING);
@@ -69,7 +77,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
 
         SMS_TYPES.append(Telephony.Sms.MESSAGE_TYPE_ALL, PhoneSmsType.OTHER);
         SMS_TYPES.append(Telephony.Sms.MESSAGE_TYPE_INBOX, PhoneSmsType.INCOMING);
-        SMS_TYPES.append(Telephony.Sms.MESSAGE_TYPE_SENT, PhoneSmsType.OTHER);
+        SMS_TYPES.append(Telephony.Sms.MESSAGE_TYPE_SENT, PhoneSmsType.OUTGOING);
         SMS_TYPES.append(Telephony.Sms.MESSAGE_TYPE_DRAFT, PhoneSmsType.OTHER);
         SMS_TYPES.append(Telephony.Sms.MESSAGE_TYPE_OUTBOX, PhoneSmsType.OUTGOING);
         SMS_TYPES.append(Telephony.Sms.MESSAGE_TYPE_FAILED, PhoneSmsType.OTHER);
@@ -81,16 +89,15 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     private final Mac sha256;
     private final byte[] hashBuffer = new byte[4];
 
-    private ScheduledFuture<?> callLogReadFuture;
-    private ScheduledFuture<?> smsLogReadFuture;
-    private final ScheduledExecutorService executor;
-
-
+    private Context context;
 
     public PhoneLogManager(PhoneLogService phoneLogService, TableDataHandler dataHandler, String userId, String sourceId) {
         super(phoneLogService, new BaseDeviceState(), dataHandler, userId, sourceId);
         callTable = getCache(phoneLogService.getTopics().getCallTopic());
         smsTable = getCache(phoneLogService.getTopics().getSmsTopic());
+
+        context = phoneLogService.getApplicationContext();
+        preferences = context.getSharedPreferences(PhoneLogService.class.getName(), Context.MODE_PRIVATE);
 
         try {
             this.sha256 = Mac.getInstance("HmacSHA256");
@@ -104,9 +111,6 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         }
 
         setName(android.os.Build.MODEL);
-
-        // Scheduler TODO: run executor with existing thread pool/factory
-        executor = Executors.newSingleThreadScheduledExecutor();
     }
 
     public void start(@NonNull Set<String> acceptableIds) {
@@ -118,113 +122,138 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     }
 
     public final synchronized void setCallLogUpdateRate(final long period) {
-        if (callLogReadFuture != null) {
-            callLogReadFuture.cancel(false);
-        }
+        // Create an intent and alarm that will be wrapped in PendingIntent
+        Intent intent = new Intent(ACTIVITY_LAUNCH_WAKE);
 
-        callLogReadFuture = executor.scheduleAtFixedRate(new Runnable() {
+        // Create the pending intent and wrap our intent
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this.context, 1, intent, 0);
+
+        // Get alarm manager and schedule it to run every period (seconds)
+        AlarmManager alarmManager = (AlarmManager) this.context.getSystemService(ALARM_SERVICE);
+        alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), period * 1000, pendingIntent);
+
+        // Activity to perform when alarm is triggered
+        this.context.registerReceiver(new BroadcastReceiver() {
             @Override
-            public void run() {
-
-                try {
-                    final long initialDateRead = Long.parseLong(storage.getOrSet(LAST_CALL_KEY, "0"));
-                    long lastDateRead = initialDateRead;
-                    long threshold = System.currentTimeMillis() / 1000L - period;
-                    if (lastDateRead < threshold) {
-                        lastDateRead = threshold;
-                    }
-
-                    try (Cursor c = getService().getContentResolver().query(CallLog.Calls.CONTENT_URI, null, CallLog.Calls.DATE + " > " + lastDateRead, null, CallLog.Calls.DATE + " ASC")) {
-                        if (c == null) {
-                            return;
-                        }
-
-                        while (c.moveToNext()) {
-                            long date = c.getLong(c.getColumnIndex(CallLog.Calls.DATE));
-
-                            processCall(date / 1000d,
-                                    c.getString(c.getColumnIndex(CallLog.Calls.NUMBER)),
-                                    c.getFloat(c.getColumnIndex(CallLog.Calls.DURATION)),
-                                    c.getInt(c.getColumnIndex(CallLog.Calls.TYPE)));
-                            lastDateRead = date;
-                        }
-                    } catch (Throwable t) {
-                        logger.warn("Error in processing the call log: {}", t.getMessage());
-                        t.printStackTrace();
-                    } finally {
-                        if (lastDateRead != initialDateRead) {
-                            storage.put(LAST_CALL_KEY, Long.toString(lastDateRead));
-                        }
-                    }
-                } catch (IOException ex) {
-                    logger.error("Failed to read or write last call processed.", ex);
-                }
+            public void onReceive(Context context, Intent intent) {
+                processCall(System.currentTimeMillis() / 1000L - period);
             }
-        }, 0, period, TimeUnit.SECONDS);
+        }, new IntentFilter(ACTIVITY_LAUNCH_WAKE));
 
         logger.info("Call log: listener activated and set to a period of {}", period);
     }
 
-    public final synchronized void setSmsLogUpdateRate(final long period) {
-        if (smsLogReadFuture != null) {
-            smsLogReadFuture.cancel(false);
+    private synchronized void processCall(long threshold) {
+//      final long initialDateRead = Long.parseLong(storage.getOrSet(LAST_CALL_KEY, "0"));
+        final long initialDateRead = Long.parseLong(preferences.getString(LAST_CALL_KEY, "0"));
+
+        long lastDateRead = initialDateRead;
+        if (lastDateRead < threshold) {
+            lastDateRead = threshold;
         }
 
-        smsLogReadFuture = executor.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    final long initialDateRead = Long.parseLong(storage.getOrSet(LAST_SMS_KEY, "0"));
-                    long lastDateRead = initialDateRead;
-                    long threshold = System.currentTimeMillis() / 1000L - period;
-                    if (lastDateRead < threshold) {
-                        lastDateRead = threshold;
-                    }
-
-                    try (Cursor c = getService().getContentResolver().query(Telephony.Sms.CONTENT_URI, null, Telephony.Sms.DATE + " > " + lastDateRead, null, Telephony.Sms.DATE + " ASC")) {
-                        if (c == null) {
-                            return;
-                        }
-
-                        while (c.moveToNext()) {
-                            long date = c.getLong(c.getColumnIndex(CallLog.Calls.DATE));
-
-                            processSMS(date / 1000d,
-                                    c.getString(c.getColumnIndex(Telephony.Sms.ADDRESS)),
-                                    c.getInt(c.getColumnIndex(Telephony.Sms.TYPE)),
-                                    c.getString(c.getColumnIndex(Telephony.Sms.BODY)));
-                            lastDateRead = date;
-                        }
-                    } catch (Exception ex) {
-                        logger.error("Error in processing the sms log", ex);
-                    } finally {
-                        if (lastDateRead != initialDateRead) {
-                            storage.put(LAST_SMS_KEY, Long.toString(lastDateRead));
-                        }
-                    }
-                } catch (IOException ex) {
-                    logger.error("Failed to read or write last sms processed.", ex);
-                }
+        if (ActivityCompat.checkSelfPermission(this.context, Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: handle case where permission is NOT granted
+            return;
+        }
+        try (Cursor c = getService().getContentResolver().query(CallLog.Calls.CONTENT_URI, null, CallLog.Calls.DATE + " > " + lastDateRead, null, CallLog.Calls.DATE + " ASC")) {
+            if (c == null) {
+                return;
             }
-        }, 0, period, TimeUnit.SECONDS);
 
-        logger.info("SMS log: listener activated and set to a period of {}", period);
+            while (c.moveToNext()) {
+                long date = c.getLong(c.getColumnIndex(CallLog.Calls.DATE));
+
+                sendPhoneCall(date / 1000d,
+                        c.getString(c.getColumnIndex(CallLog.Calls.NUMBER)),
+                        c.getFloat(c.getColumnIndex(CallLog.Calls.DURATION)),
+                        c.getInt(c.getColumnIndex(CallLog.Calls.TYPE))
+                );
+                lastDateRead = date;
+            }
+        } catch (Throwable t) {
+            logger.warn("Error in processing the call log: {}", t.getMessage());
+            t.printStackTrace();
+        } finally {
+            if (lastDateRead != initialDateRead) {
+                preferences.edit().putString(LAST_CALL_KEY, Long.toString(lastDateRead)).apply();
+//                storage.put(LAST_CALL_KEY, Long.toString(lastDateRead));
+            }
+        }
     }
 
-    public void processCall(double eventTimestamp, String target, float duration, int typeCode) {
+    public void sendPhoneCall(double eventTimestamp, String target, float duration, int typeCode) {
         // Check whether a newer call has already been stored
         byte[] targetKey = createTargetHashKey(target);
 
         PhoneCallType type = CALL_TYPES.get(typeCode, PhoneCallType.UNKNOWN);
 
         double timestamp = System.currentTimeMillis() / 1000d;
-        send(callTable, new PhoneCall(
-                eventTimestamp, timestamp, duration, ByteBuffer.wrap(targetKey), type));
+        send(callTable, new PhoneCall(eventTimestamp, timestamp, duration, ByteBuffer.wrap(targetKey), type));
 
-        logger.info("Call log: {}, {}, {}, {}, {}, {}", target, targetKey, duration, type, eventTimestamp, timestamp);
+        logger.debug("Call log: {}, {}, {}, {}, {}, {}", target, targetKey, duration, type, eventTimestamp, timestamp);
     }
 
-    public void processSMS(double eventTimestamp, String target, int typeCode, String message) {
+    public final synchronized void setSmsLogUpdateRate(final long period) {
+        // Create an intent and alarm that will be wrapped in PendingIntent
+        Intent intent = new Intent(ACTIVITY_LAUNCH_WAKE);
+
+        // Create the pending intent and wrap our intent
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this.context, 1, intent, 0);
+
+        // Get alarm manager and schedule it to run every period (seconds)
+        AlarmManager alarmManager = (AlarmManager) this.context.getSystemService(ALARM_SERVICE);
+        alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), period * 1000, pendingIntent);
+
+        // Activity to perform when alarm is triggered
+        this.context.registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                processSMS(System.currentTimeMillis() / 1000L - period);
+            }
+        }, new IntentFilter(ACTIVITY_LAUNCH_WAKE));
+
+        logger.info("SMS log: listener activated and set to a period of {}", period);
+    }
+
+    private synchronized void processSMS(long threshold) {
+//            final long initialDateRead = Long.parseLong(storage.getOrSet(LAST_SMS_KEY, "0"));
+        final long initialDateRead = Long.parseLong(preferences.getString(LAST_SMS_KEY, "0"));
+
+        long lastDateRead = initialDateRead;
+        if (lastDateRead < threshold) {
+            lastDateRead = threshold;
+        }
+
+        // Query all sms with a date later than the last date seen and sort by date
+        try (Cursor c = getService().getContentResolver().query(Telephony.Sms.CONTENT_URI, null, Telephony.Sms.DATE + " > " + lastDateRead, null, Telephony.Sms.DATE + " ASC")) {
+            if (c == null) {
+                return;
+            }
+
+            while (c.moveToNext()) {
+                long date = c.getLong(c.getColumnIndex(Telephony.Sms.DATE));
+
+//                logger.info("Read int: {}",  c.getString(c.getColumnIndex(Telephony.Sms.READ)));
+
+                sendPhoneSms(date / 1000d,
+                        c.getString(c.getColumnIndex(Telephony.Sms.ADDRESS)),
+                        c.getInt(c.getColumnIndex(Telephony.Sms.TYPE)),
+                        c.getString(c.getColumnIndex(Telephony.Sms.BODY))
+                );
+                lastDateRead = date;
+            }
+        } catch (Exception ex) {
+            logger.error("Error in processing the sms log", ex);
+        } finally {
+            if (lastDateRead != initialDateRead) {
+                preferences.edit().putString(LAST_SMS_KEY, Long.toString(lastDateRead)).apply();
+//                    storage.put(LAST_SMS_KEY, Long.toString(lastDateRead));
+            }
+        }
+    }
+
+    public void sendPhoneSms(double eventTimestamp, String target, int typeCode, String message) {
         byte[] targetKey = createTargetHashKey(target);
 
         PhoneSmsType type = SMS_TYPES.get(typeCode, PhoneSmsType.UNKNOWN);
@@ -240,11 +269,19 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     /**
      * Extracts last 9 characters and hashes the result with a salt.
      * For phone numbers this means that the area code is removed
-     * E.g.:+31232014111 becomes 232014111 and 0612345678 becomes 612345678 (before hashing)
+     * E.g.: +31232014111 becomes 232014111 and 0612345678 becomes 612345678 (before hashing)
+     * If target is a name instead of a number (e.g. when sms), then hash this raw name
      * @param target String
      * @return String
      */
     public byte[] createTargetHashKey(String target) {
+        // If non-numerical, then hash the target directly
+        try {
+            Integer.valueOf(target);
+        } catch (NumberFormatException ex) {
+            return sha256.doFinal(target.getBytes());
+        }
+
         int length = target.length();
         if (length > 9) {
             target = target.substring(length - 9, length);
@@ -260,14 +297,14 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         return sha256.doFinal(hashBuffer);
     }
 
-    private static byte[] loadHashKey() throws IOException {
-        String b64Salt = storage.get(HASH_KEY);
+    private byte[] loadHashKey() throws IOException {
+        String b64Salt = preferences.getString(HASH_KEY, null);
         if (b64Salt == null) {
             byte[] byteSalt = new byte[16];
             new SecureRandom().nextBytes(byteSalt);
 
             b64Salt = Base64.encodeToString(byteSalt, Base64.NO_WRAP);
-            storage.put(HASH_KEY, b64Salt);
+            preferences.edit().putString(HASH_KEY, b64Salt).apply();
             return byteSalt;
         } else {
             return Base64.decode(b64Salt, Base64.NO_WRAP);
