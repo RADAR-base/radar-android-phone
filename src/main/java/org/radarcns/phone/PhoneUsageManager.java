@@ -104,30 +104,36 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         setUsageEventUpdateRate(USAGE_EVENT_PERIOD_DEFAULT);
 
         // Listen for screen lock/unlock events
-        IntentFilter screenStateFilter = new IntentFilter();
-        screenStateFilter.addAction(Intent.ACTION_USER_PRESENT); // unlock
-        screenStateFilter.addAction(Intent.ACTION_SCREEN_OFF); // lock
+        IntentFilter phoneStateFilter = new IntentFilter();
+        phoneStateFilter.addAction(Intent.ACTION_USER_PRESENT); // unlock
+        phoneStateFilter.addAction(Intent.ACTION_SCREEN_OFF); // lock
+        phoneStateFilter.addAction(Intent.ACTION_SHUTDOWN); // shutdown
         getService().registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if (intent.getAction().equals(Intent.ACTION_USER_PRESENT) ||
-                        intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
-                    processInteractionState(intent);
-                }
+                sendInteractionState(intent);
             }
-        }, screenStateFilter);
+        }, phoneStateFilter);
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
     }
 
 
-    public void processInteractionState(Intent intent) {
-        PhoneLockState state;
+    public void sendInteractionState(Intent intent) {
+        PhoneInteractionState state;
 
-        if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
-            state = PhoneLockState.STANDBY;
-        } else {
-            state = PhoneLockState.UNLOCKED;
+        switch (intent.getAction()) {
+            case Intent.ACTION_SCREEN_OFF:
+                state = PhoneInteractionState.STANDBY;
+                break;
+            case Intent.ACTION_USER_PRESENT:
+                state = PhoneInteractionState.UNLOCKED;
+                break;
+            case Intent.ACTION_SHUTDOWN:
+                state = PhoneInteractionState.SHUTDOWN;
+                break;
+            default:
+                return;
         }
 
         double timestamp = System.currentTimeMillis() / 1000d;
@@ -135,7 +141,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
                 timestamp, timestamp, state);
         send(userInteractionTable, value);
 
-        logger.debug("Interaction State: {} {}", timestamp, state);
+        logger.info("Interaction State: {} {}", timestamp, state);
     }
 
     public final synchronized void setUsageEventUpdateRate(final long period) {
