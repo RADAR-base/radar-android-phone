@@ -27,6 +27,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
+import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.Date;
@@ -36,6 +37,7 @@ import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
+import org.radarcns.android.util.Boast;
 import org.radarcns.key.MeasurementKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,6 +78,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
 
     private static final long USAGE_EVENT_PERIOD_DEFAULT = 60*60; // one hour
+    private static final long USAGE_EVENT_HISTORY_DEFAULT = 60*60; // one hour
 
     private PhoneUsageService context;
 
@@ -158,9 +161,8 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     }
 
     private void processUsageEvents() {
-        // Get events from previous event to now
-        // TODO: do not get events earlier than RADAR-CNS app install
-        final long queryStartTime = previousEventPackageName == null ? 0 : previousEventTimestamp;
+        // Get events from previous event to now or from a fixed history
+        final long queryStartTime = previousEventPackageName == null ? System.currentTimeMillis() - USAGE_EVENT_HISTORY_DEFAULT * 1000 : previousEventTimestamp;
         final long queryEndTime = System.currentTimeMillis();
         UsageEvents usageEvents = usageStatsManager.queryEvents(queryStartTime, queryEndTime);
 
@@ -191,6 +193,14 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
             usageEvent = new UsageEvents.Event();
         }
 
+        // If no event was found, then the permission needs to be given
+        if (previousEventPackageName == null){
+//            Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
+//            startActivity(intent);
+            logger.info("Please give this app Android Usage Access permissions (Security->App Usage access)");
+            Boast.makeText(context, "Please give this app Android Usage Access permissions (Security->App Usage access)", Toast.LENGTH_LONG).show();
+        }
+
         // Store the last previous event on internal memory for the next run
         this.storePreviousEvent();
     }
@@ -216,6 +226,10 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     }
 
     private void storePreviousEvent() {
+        if (previousEventPackageName == null) {
+            return;
+        }
+
         preferences.edit()
                 .putString(PREVIOUS_PACKAGE_NAME, previousEventPackageName)
                 .putLong(PREVIOUS_TIMESTAMP, previousEventTimestamp)
@@ -255,7 +269,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
                 timeStamp / 1000d, timeReceived, packageName, "", usageEventType);
         send(usageEventTable, value);
 
-        logger.debug("Event: [{}] {}\n\t{}", eventType, packageName, new Date(timeStamp));
+        logger.info("Event: [{}] {}\n\t{}", eventType, packageName, new Date(timeStamp));
     }
 
     @Override
