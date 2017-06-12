@@ -187,13 +187,16 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     }
 
     public void sendPhoneCall(double eventTimestamp, String target, float duration, int typeCode) {
-        // Check whether a newer call has already been stored
-        byte[] targetKey = createTargetHashKey(target);
+        ByteBuffer targetKey = null;
+        byte[] targetKeyByte = createTargetHashKey(target);
+        if (targetKeyByte != null) {
+            targetKey = ByteBuffer.wrap(targetKeyByte);
+        }
 
         PhoneCallType type = CALL_TYPES.get(typeCode, PhoneCallType.UNKNOWN);
 
         double timestamp = System.currentTimeMillis() / 1000d;
-        send(callTable, new PhoneCall(eventTimestamp, timestamp, duration, ByteBuffer.wrap(targetKey), type));
+        send(callTable, new PhoneCall(eventTimestamp, timestamp, duration, targetKey, type));
 
         logger.info("Call log: {}, {}, {}, {}, {}, {}", target, targetKey, duration, type, eventTimestamp, timestamp);
     }
@@ -263,7 +266,12 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     public byte[] createTargetHashKey(String target) {
         // If non-numerical, then hash the target directly
         try {
-            Integer.valueOf(target);
+            Long targetLong = Long.parseLong(target);
+
+            // Anonymous calls have target -1 or -2, do not hash them
+            if (targetLong < 0) {
+                return null;
+            }
         } catch (NumberFormatException ex) {
             return sha256.doFinal(target.getBytes());
         }
