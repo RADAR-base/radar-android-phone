@@ -199,14 +199,6 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
             usageEvent = new UsageEvents.Event();
         }
 
-        // If no event was found, then the permission needs to be given
-        if (previousEventPackageName == null){
-//            Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
-//            startActivity(intent);
-            logger.info("Please give this app Android Usage Access permissions (Security->App Usage access)");
-            Boast.makeText(context, "Please give this app Android Usage Access permissions (Security->App Usage access)", Toast.LENGTH_LONG).show();
-        }
-
         // Store the last previous event on internal memory for the next run
         this.storePreviousEvent();
     }

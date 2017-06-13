@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static android.Manifest.permission.INTERNET;
+import static android.Manifest.permission.PACKAGE_USAGE_STATS;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 //import static android.Manifest.permission.PACKAGE_USAGE_STATS;
 
@@ -45,12 +46,11 @@ public class PhoneUsageProvider extends DeviceServiceProvider<PhoneState> {
 
     @Override
     public List<String> needsPermissions() {
-        // TODO: add PACKAGE_USAGE_STATS
         //Check if permission enabled
 //        if (appUsages.getUsageStatsList().isEmpty()){
 //            Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
 //            startActivity(intent);
 //        }
-        return Arrays.asList(WRITE_EXTERNAL_STORAGE, INTERNET);
+        return Arrays.asList(PACKAGE_USAGE_STATS);
     }
 }
