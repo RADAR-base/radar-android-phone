@@ -104,6 +104,30 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
             logger.warn("Phone Light sensor not found");
         }
 
+        // Gyroscope
+        if (sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null) {
+            Sensor gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+            sensorManager.registerListener(this, gyroscope, SENSOR_DELAY_DEFAULT);
+        } else {
+            logger.warn("Phone Gyroscope not found");
+        }
+
+        // Magnetic field
+        if (sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null) {
+            Sensor magneticField = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+            sensorManager.registerListener(this, magneticField, SENSOR_DELAY_DEFAULT);
+        } else {
+            logger.warn("Phone magnetometer not found");
+        }
+
+        // Steps
+        if (sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) != null) {
+            Sensor stepCounter = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+            sensorManager.registerListener(this, stepCounter, SENSOR_DELAY_DEFAULT);
+        } else {
+            logger.warn("Phon step counter not found");
+        }
+
         // Battery
         IntentFilter batteryFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         processBatteryStatus(getService().registerReceiver(new BroadcastReceiver() {
@@ -134,12 +158,24 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if ( event.sensor.getType() == Sensor.TYPE_ACCELEROMETER ) {
-            processAcceleration(event);
-        } else if ( event.sensor.getType() == Sensor.TYPE_LIGHT ) {
-            processLight(event);
-        } else {
-            logger.info("Phone registered other sensor change: '{}'", event.sensor.getType());
+        switch (event.sensor.getType()) {
+            case Sensor.TYPE_ACCELEROMETER:
+                processAcceleration(event);
+                break;
+            case Sensor.TYPE_LIGHT:
+                processLight(event);
+                break;
+            case Sensor.TYPE_GYROSCOPE:
+                processGyroscope(event);
+                break;
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                processMagneticField(event);
+                break;
+            case Sensor.TYPE_STEP_COUNTER:
+                processStep(event);
+                break;
+            default:
+                logger.debug("Phone registered unknown sensor change: '{}'", event.sensor.getType());
         }
     }
 
@@ -175,6 +211,45 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         double time = ( timeReceived - (System.nanoTime() - event.timestamp) / 1_000_000_000d );      
 
         send(lightTable, new PhoneLight(time, timeReceived, lightValue));
+    }
+
+    public void processGyroscope(SensorEvent event) {
+        // Not normalized axis of rotation in rad/s
+        float axisX = event.values[0];
+        float axisY = event.values[1];
+        float axisZ = event.values[2];
+
+        double timeReceived = System.currentTimeMillis() / 1_000d;
+
+        // nanoseconds uptime to seconds ut
+        double time = ( timeReceived - (System.nanoTime() - event.timestamp) / 1_000_000_000d );
+//        send(gyroscopeTable, new PhoneGyroscope(time, timeReceived, axisX, axisY, axisZ));
+    }
+
+    public void processMagneticField(SensorEvent event) {
+        // Magnetic field in microTesla
+        float axisX = event.values[0];
+        float axisY = event.values[1];
+        float axisZ = event.values[2];
+
+        double timeReceived = System.currentTimeMillis() / 1_000d;
+
+        // nanoseconds uptime to seconds ut
+        double time = ( timeReceived - (System.nanoTime() - event.timestamp) / 1_000_000_000d );
+//        send(magneticFieldTable, new PhoneMagneticField(time, timeReceived, axisX, axisY, axisZ));
+    }
+
+    public void processStep(SensorEvent event) {
+        // Number of step since listening or since reboot
+        float stepCount = event.values[0];
+
+        double timeReceived = System.currentTimeMillis() / 1_000d;
+
+        // nanoseconds uptime to seconds ut
+        double time = ( timeReceived - (System.nanoTime() - event.timestamp) / 1_000_000_000d );
+        
+//        send(stepCounterTable, new PhoneStepCount(time, timeReceived, totalSteps));
+        logger.info("Steps: {}", stepCount);
     }
 
     public void processBatteryStatus(Intent intent) {
