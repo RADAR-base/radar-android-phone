@@ -27,6 +27,7 @@ import android.hardware.SensorManager;
 import android.os.BatteryManager;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
+import android.util.SparseIntArray;
 
 import org.radarcns.android.data.DataCache;
 import org.radarcns.android.data.TableDataHandler;
@@ -51,9 +52,34 @@ import static android.os.BatteryManager.BATTERY_STATUS_UNKNOWN;
 class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, PhoneState> implements DeviceManager, SensorEventListener {
     private static final Logger logger = LoggerFactory.getLogger(PhoneSensorManager.class);
 
-    private static final float EARTH_GRAVITATIONAL_ACCELERATION = 9.80665f;
-    private static final SparseArray<BatteryStatus> BATTERY_TYPES = new SparseArray<>(5);
+    // Sensors to register, together with the name of the sensor
+    private static final int[] SENSOR_TYPES_TO_REGISTER = {
+        Sensor.TYPE_ACCELEROMETER,
+        Sensor.TYPE_LIGHT,
+        Sensor.TYPE_MAGNETIC_FIELD,
+        Sensor.TYPE_GYROSCOPE,
+        Sensor.TYPE_STEP_COUNTER
+    };
 
+    // Names of the sensor (for warning message if unable to register)
+    private static final SparseArray<String> SENSOR_NAMES = new SparseArray<>(5);
+    static {
+        SENSOR_NAMES.append(Sensor.TYPE_ACCELEROMETER, Sensor.STRING_TYPE_ACCELEROMETER);
+        SENSOR_NAMES.append(Sensor.TYPE_LIGHT, Sensor.STRING_TYPE_LIGHT);
+        SENSOR_NAMES.append(Sensor.TYPE_MAGNETIC_FIELD, Sensor.STRING_TYPE_MAGNETIC_FIELD);
+        SENSOR_NAMES.append(Sensor.TYPE_GYROSCOPE, Sensor.STRING_TYPE_GYROSCOPE);
+        SENSOR_NAMES.append(Sensor.TYPE_STEP_COUNTER, Sensor.STRING_TYPE_STEP_COUNTER);
+    }
+
+    // Sensor Delay if different from default
+    private static final SparseIntArray SENSOR_DELAYS = new SparseIntArray(5);
+    static {
+        SENSOR_DELAYS.append(Sensor.TYPE_STEP_COUNTER, SensorManager.SENSOR_DELAY_UI);
+    }
+
+    private static final int SENSOR_DELAY_DEFAULT = SensorManager.SENSOR_DELAY_NORMAL;
+
+    private static final SparseArray<BatteryStatus> BATTERY_TYPES = new SparseArray<>(5);
     static {
         BATTERY_TYPES.append(BATTERY_STATUS_UNKNOWN, BatteryStatus.UNKNOWN);
         BATTERY_TYPES.append(BATTERY_STATUS_CHARGING, BatteryStatus.CHARGING);
@@ -85,7 +111,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
     @Override
     public void start(@NonNull final Set<String> acceptableIds) {
-        sensorManager = (SensorManager) getService().getSystemService(Context.SENSOR_SERVICE);
 
         // Accelerometer
         if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
@@ -186,9 +211,9 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
     public void processAcceleration(SensorEvent event) {
         // x,y,z are in m/s2
-        float x = event.values[0] / EARTH_GRAVITATIONAL_ACCELERATION;
-        float y = event.values[1] / EARTH_GRAVITATIONAL_ACCELERATION;
-        float z = event.values[2] / EARTH_GRAVITATIONAL_ACCELERATION;
+        float x = event.values[0] / SensorManager.GRAVITY_EARTH;
+        float y = event.values[1] / SensorManager.GRAVITY_EARTH;
+        float z = event.values[2] / SensorManager.GRAVITY_EARTH;
         getState().setAcceleration(x, y, z);
         
         double timeReceived = System.currentTimeMillis() / 1_000d;
