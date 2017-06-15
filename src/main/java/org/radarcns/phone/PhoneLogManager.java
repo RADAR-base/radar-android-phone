@@ -16,7 +16,6 @@
 
 package org.radarcns.phone;
 
-import android.Manifest;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -24,22 +23,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.provider.CallLog;
 import android.provider.Telephony;
 import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
 import android.util.Base64;
 import android.util.SparseArray;
-import android.widget.Toast;
 
 import org.radarcns.android.data.DataCache;
 import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
-import org.radarcns.android.util.Boast;
 import org.radarcns.key.MeasurementKey;
 import org.radarcns.util.Serialization;
 import org.slf4j.Logger;
@@ -139,13 +134,14 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
             public void onReceive(Context context, Intent intent) {
                 processCallLog();
                 processSmsLog();
+                processNumberUnreadSms();
             }
         }, new IntentFilter(ACTIVITY_LAUNCH_WAKE));
 
         logger.info("Call and SMS log: listener activated and set to a period of {}", period);
     }
 
-    private synchronized void processCallLog() {
+    private synchronized void processCallLog() throws SecurityException {
         final long initialDateRead = Long.parseLong(preferences.getString(LAST_CALL_KEY, "0"));
 
         // If this is the first call (initialDateRead is default),
@@ -155,12 +151,6 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
             lastDateRead = System.currentTimeMillis() - CALL_SMS_LOG_HISTORY_DEFAULT * 1000;
         }
 
-        if (ActivityCompat.checkSelfPermission(this.context, Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) {
-//            SanityManager.getInstance(context).addPermissionAlert(this.getClass().getName(), Manifest.permission.READ_CALL_LOG, "", null);
-//            ActivityCompat.requestPermissions(this.context, new String[]{Manifest.permission.READ_CALL_LOG},0);
-            Boast.makeText(this.context, "Cannot read call log; permission not granted", Toast.LENGTH_LONG);
-            return;
-        }
         try (Cursor c = getService().getContentResolver().query(CallLog.Calls.CONTENT_URI, null, CallLog.Calls.DATE + " > " + lastDateRead, null, CallLog.Calls.DATE + " ASC")) {
             if (c == null) {
                 return;
@@ -186,7 +176,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         }
     }
 
-    public void sendPhoneCall(double eventTimestamp, String target, float duration, int typeCode) {
+    private void sendPhoneCall(double eventTimestamp, String target, float duration, int typeCode) {
         ByteBuffer targetKey = null;
         byte[] targetKeyByte = createTargetHashKey(target);
         if (targetKeyByte != null) {
@@ -211,13 +201,8 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
             lastDateRead = System.currentTimeMillis() - CALL_SMS_LOG_HISTORY_DEFAULT * 1000;
         }
 
-        if (ActivityCompat.checkSelfPermission(this.context, Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) {
-//            SanityManager.getInstance(context).addPermissionAlert(this.getClass().getName(), Manifest.permission.READ_CALL_LOG, "", null);
-//            ActivityCompat.requestPermissions(this.context, new String[]{Manifest.permission.READ_CALL_LOG},0);
-            Boast.makeText(this.context, "Cannot read sms log; permission not granted", Toast.LENGTH_LONG);
-            return;
-        }
         // Query all sms with a date later than the last date seen and sort by date
+        int numberUnread = 0;
         try (Cursor c = getService().getContentResolver().query(Telephony.Sms.CONTENT_URI, null, Telephony.Sms.DATE + " > " + lastDateRead, null, Telephony.Sms.DATE + " ASC")) {
             if (c == null) {
                 return;
@@ -225,6 +210,10 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
 
             while (c.moveToNext()) {
                 long date = c.getLong(c.getColumnIndex(Telephony.Sms.DATE));
+
+                if (c.getInt(c.getColumnIndex(Telephony.Sms.READ)) == 0) {
+                    numberUnread++;
+                }
 
                 sendPhoneSms(date / 1000d,
                         c.getString(c.getColumnIndex(Telephony.Sms.ADDRESS)),
@@ -242,7 +231,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         }
     }
 
-    public void sendPhoneSms(double eventTimestamp, String target, int typeCode, String message) {
+    private void sendPhoneSms(double eventTimestamp, String target, int typeCode, String message) {
         byte[] targetKey = createTargetHashKey(target);
 
         PhoneSmsType type = SMS_TYPES.get(typeCode, PhoneSmsType.UNKNOWN);
@@ -253,6 +242,21 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
                 eventTimestamp, timestamp, ByteBuffer.wrap(targetKey), type, length));
 
         logger.info("SMS log: {}, {}, {}, {}, {}, {} chars", target, targetKey, type, eventTimestamp, timestamp, length);
+    }
+
+    private void processNumberUnreadSms() {
+        try (Cursor c = getService().getContentResolver().query(Telephony.Sms.CONTENT_URI, null, Telephony.Sms.READ + " = 0", null, null)) {
+            if (c == null) {
+                return;
+            }
+            sendNumberUnreadSms(c.getCount());
+        } catch (Exception ex) {
+            logger.error("Error in processing the sms log", ex);
+        }
+    }
+
+    private void sendNumberUnreadSms(int number) {
+        logger.info("SMS unread: {}", number);
     }
 
     /**
