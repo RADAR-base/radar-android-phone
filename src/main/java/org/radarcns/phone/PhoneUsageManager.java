@@ -73,6 +73,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     private static final String PREVIOUS_TIMESTAMP = "timestamp";
     private static final String PREVIOUS_EVENT_TYPE = "event_type";
     private static final String PREVIOUS_IS_SENT = "is_sent";
+    private static final String PREFERENCE_BOOT_TIME = "org.radarcns.phone.bootTime";
 
     private final DataCache<MeasurementKey, PhoneUsageEvent> usageEventTable;
     private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
@@ -107,22 +108,37 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         IntentFilter phoneStateFilter = new IntentFilter();
         phoneStateFilter.addAction(Intent.ACTION_USER_PRESENT); // unlock
         phoneStateFilter.addAction(Intent.ACTION_SCREEN_OFF); // lock
+        phoneStateFilter.addAction(Intent.ACTION_BOOT_COMPLETED); // restarted and unlocked
         phoneStateFilter.addAction(Intent.ACTION_SHUTDOWN); // shutdown
         getService().registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                sendInteractionState(intent);
+                if (intent.getAction().equals(Intent.ACTION_BOOT_COMPLETED)) {
+                    SharedPreferences prefs = context.getSharedPreferences("org.radarcns.phone",
+                            Context.MODE_PRIVATE);
+                    prefs.edit()
+                            .putLong(PREFERENCE_BOOT_TIME, System.currentTimeMillis())
+                            .apply();
+                } else {
+                    sendInteractionState(intent.getAction(), System.currentTimeMillis() / 1000d);
+                }
             }
         }, phoneStateFilter);
+
+        // Send any saved boot time
+        Long bootTime = preferences.getLong(PREFERENCE_BOOT_TIME,-1);
+        if (bootTime > 0) {
+            sendInteractionState(Intent.ACTION_BOOT_COMPLETED, bootTime / 1000d);
+        }
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
     }
 
 
-    public void sendInteractionState(Intent intent) {
+    public void sendInteractionState(String action, double timestamp) {
         PhoneInteractionState state;
 
-        switch (intent.getAction()) {
+        switch (action) {
             case Intent.ACTION_SCREEN_OFF:
                 state = PhoneInteractionState.STANDBY;
                 break;
@@ -136,9 +152,9 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
                 return;
         }
 
-        double timestamp = System.currentTimeMillis() / 1000d;
+        double timestampReceived = System.currentTimeMillis() / 1000d;
         PhoneUserInteraction value = new PhoneUserInteraction(
-                timestamp, timestamp, state);
+                timestamp, timestampReceived, state);
         send(userInteractionTable, value);
 
         logger.info("Interaction State: {} {}", timestamp, state);

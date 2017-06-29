@@ -41,7 +41,7 @@ public class PhoneUsageProvider extends DeviceServiceProvider<PhoneState> {
 
     @Override
     public String getDisplayName() {
-        return getActivity().getString(R.string.phoneServiceDisplayName);
+        return getActivity().getString(R.string.phoneUsageServiceDisplayName);
     }
 
     @Override
