@@ -27,7 +27,6 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
-import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.Date;
@@ -37,7 +36,6 @@ import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
-import org.radarcns.android.util.Boast;
 import org.radarcns.key.MeasurementKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,11 +67,12 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     private boolean previousEventIsSent = false;
 
     private SharedPreferences preferences;
-    private static final String PREVIOUS_PACKAGE_NAME = "package_name";
-    private static final String PREVIOUS_TIMESTAMP = "timestamp";
-    private static final String PREVIOUS_EVENT_TYPE = "event_type";
-    private static final String PREVIOUS_IS_SENT = "is_sent";
-    private static final String PREFERENCE_BOOT_TIME = "org.radarcns.phone.bootTime";
+    private static final String PREVIOUS_PACKAGE_NAME = "org.radarcns.phone.packageName";
+    private static final String PREVIOUS_TIMESTAMP = "org.radarcns.phone.timestamp";
+    private static final String PREVIOUS_EVENT_TYPE = "org.radarcns.phone.eventType";
+    private static final String PREVIOUS_IS_SENT = "org.radarcns.phone.isSent";
+    private static final String LAST_USER_INTERACTION = "org.radarcns.phone.lastAction";
+    private static final String ACTION_BOOT = "org.radarcns.phone.ACTION_BOOT";
 
     private final DataCache<MeasurementKey, PhoneUsageEvent> usageEventTable;
     private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
@@ -108,28 +107,18 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         IntentFilter phoneStateFilter = new IntentFilter();
         phoneStateFilter.addAction(Intent.ACTION_USER_PRESENT); // unlock
         phoneStateFilter.addAction(Intent.ACTION_SCREEN_OFF); // lock
-        phoneStateFilter.addAction(Intent.ACTION_BOOT_COMPLETED); // restarted and unlocked
         phoneStateFilter.addAction(Intent.ACTION_SHUTDOWN); // shutdown
         getService().registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if (intent.getAction().equals(Intent.ACTION_BOOT_COMPLETED)) {
-                    SharedPreferences prefs = context.getSharedPreferences("org.radarcns.phone",
-                            Context.MODE_PRIVATE);
-                    prefs.edit()
-                            .putLong(PREFERENCE_BOOT_TIME, System.currentTimeMillis())
-                            .apply();
-                } else {
-                    sendInteractionState(intent.getAction(), System.currentTimeMillis() / 1000d);
+                // If previous event was a shutdown, then this action indicates that the phone has booted
+                if (preferences.getString(LAST_USER_INTERACTION,"").equals(Intent.ACTION_SHUTDOWN)) {
+                    sendInteractionState(ACTION_BOOT, System.currentTimeMillis() / 1000d);
                 }
+
+                sendInteractionState(intent.getAction(), System.currentTimeMillis() / 1000d);
             }
         }, phoneStateFilter);
-
-        // Send any saved boot time
-        Long bootTime = preferences.getLong(PREFERENCE_BOOT_TIME,-1);
-        if (bootTime > 0) {
-            sendInteractionState(Intent.ACTION_BOOT_COMPLETED, bootTime / 1000d);
-        }
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
     }
@@ -148,6 +137,9 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
             case Intent.ACTION_SHUTDOWN:
                 state = PhoneInteractionState.SHUTDOWN;
                 break;
+            case ACTION_BOOT:
+                state = PhoneInteractionState.BOOTED;
+                break;
             default:
                 return;
         }
@@ -157,6 +149,10 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
                 timestamp, timestampReceived, state);
         send(userInteractionTable, value);
 
+        // Save the last user interaction state. Value shutdown is used to register boot.
+        preferences.edit()
+                .putString(LAST_USER_INTERACTION, action)
+                .apply();
         logger.info("Interaction State: {} {}", timestamp, state);
     }
 
