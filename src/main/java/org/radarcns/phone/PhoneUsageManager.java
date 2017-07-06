@@ -276,7 +276,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
 
         double timeReceived = System.currentTimeMillis() / 1000d;
         PhoneUsageEvent value = new PhoneUsageEvent(
-                timeStamp / 1000d, timeReceived, packageName, "", usageEventType);
+                timeStamp / 1000d, timeReceived, packageName, null, null, usageEventType);
         send(usageEventTable, value);
 
         logger.info("Event: [{}] {}\n\t{}", eventType, packageName, new Date(timeStamp));
