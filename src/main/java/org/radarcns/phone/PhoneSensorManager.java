@@ -90,10 +90,14 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
     private final DataCache<MeasurementKey, PhoneAcceleration> accelerationTable;
     private final DataCache<MeasurementKey, PhoneLight> lightTable;
-    private final AvroTopic<MeasurementKey, PhoneBatteryLevel> batteryTopic;
     private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
+    private final DataCache<MeasurementKey, PhoneStepCount> stepCountTable;
+    private final DataCache<MeasurementKey, PhoneGyroscope> gyroscopeTable;
+    private final DataCache<MeasurementKey, PhoneMagneticField> magneticFieldTable;
+    private final AvroTopic<MeasurementKey, PhoneBatteryLevel> batteryTopic;
 
     private SensorManager sensorManager;
+    private Float lastStepCount;
 
     public PhoneSensorManager(PhoneSensorService context, TableDataHandler dataHandler, String groupId, String sourceId) {
         super(context, new PhoneState(), dataHandler, groupId, sourceId);
@@ -101,6 +105,10 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         this.accelerationTable = dataHandler.getCache(topics.getAccelerationTopic());
         this.lightTable = dataHandler.getCache(topics.getLightTopic());
         this.userInteractionTable = dataHandler.getCache(topics.getUserInteractionTopic());
+        this.stepCountTable = dataHandler.getCache(topics.getStepCountTopic());
+        this.gyroscopeTable = dataHandler.getCache(topics.getGyroscopeTopic());
+        this.magneticFieldTable = dataHandler.getCache(topics.getMagneticFieldTopic());
+
         this.batteryTopic = topics.getBatteryLevelTopic();
 
         sensorManager = null;
@@ -209,7 +217,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         // no action
     }
 
-    public void processAcceleration(SensorEvent event) {
+    private void processAcceleration(SensorEvent event) {
         // x,y,z are in m/s2
         float x = event.values[0] / SensorManager.GRAVITY_EARTH;
         float y = event.values[1] / SensorManager.GRAVITY_EARTH;
@@ -226,7 +234,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         send(accelerationTable, new PhoneAcceleration(time, timeReceived, x, y, z));
     }
 
-    public void processLight(SensorEvent event) {
+    private void processLight(SensorEvent event) {
         float lightValue = event.values[0];
         getState().setLight(lightValue);
         
@@ -238,7 +246,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         send(lightTable, new PhoneLight(time, timeReceived, lightValue));
     }
 
-    public void processGyroscope(SensorEvent event) {
+    private void processGyroscope(SensorEvent event) {
         // Not normalized axis of rotation in rad/s
         float axisX = event.values[0];
         float axisY = event.values[1];
@@ -246,12 +254,12 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
         double timeReceived = System.currentTimeMillis() / 1_000d;
 
-        // nanoseconds uptime to seconds ut
+        // nanoseconds uptime to seconds utc
         double time = ( timeReceived - (System.nanoTime() - event.timestamp) / 1_000_000_000d );
-//        send(gyroscopeTable, new PhoneGyroscope(time, timeReceived, axisX, axisY, axisZ));
+        send(gyroscopeTable, new PhoneGyroscope(time, timeReceived, axisX, axisY, axisZ));
     }
 
-    public void processMagneticField(SensorEvent event) {
+    private void processMagneticField(SensorEvent event) {
         // Magnetic field in microTesla
         float axisX = event.values[0];
         float axisY = event.values[1];
@@ -259,25 +267,35 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
         double timeReceived = System.currentTimeMillis() / 1_000d;
 
-        // nanoseconds uptime to seconds ut
+        // nanoseconds uptime to seconds utc
         double time = ( timeReceived - (System.nanoTime() - event.timestamp) / 1_000_000_000d );
-//        send(magneticFieldTable, new PhoneMagneticField(time, timeReceived, axisX, axisY, axisZ));
+        send(magneticFieldTable, new PhoneMagneticField(time, timeReceived, axisX, axisY, axisZ));
     }
 
-    public void processStep(SensorEvent event) {
+    private void processStep(SensorEvent event) {
         // Number of step since listening or since reboot
         float stepCount = event.values[0];
 
         double timeReceived = System.currentTimeMillis() / 1_000d;
 
-        // nanoseconds uptime to seconds ut
+        // nanoseconds uptime to seconds utc
         double time = ( timeReceived - (System.nanoTime() - event.timestamp) / 1_000_000_000d );
-        
-//        send(stepCounterTable, new PhoneStepCount(time, timeReceived, totalSteps));
-        logger.info("Steps: {}", stepCount);
+
+        // Send how many steps have been taken since the last time this function was triggered
+        // Note: normally processStep() is called for every new step and the stepsSinceLastUpdate is 1
+        int stepsSinceLastUpdate;
+        if (lastStepCount == null || lastStepCount > stepCount) {
+            stepsSinceLastUpdate = 1;
+        } else {
+            stepsSinceLastUpdate = (int) (stepCount - lastStepCount);
+        }
+        lastStepCount = stepCount;
+        send(stepCountTable, new PhoneStepCount(time, timeReceived, stepsSinceLastUpdate));
+
+        logger.info("Steps taken: {}", stepsSinceLastUpdate);
     }
 
-    public void processBatteryStatus(Intent intent) {
+    private void processBatteryStatus(Intent intent) {
         if (intent == null) {
             return;
         }
@@ -297,7 +315,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
                 time, time, batteryPct, isPlugged, batteryStatus));
     }
 
-    public void processInteractionState(Intent intent) {
+    private void processInteractionState(Intent intent) {
         PhoneLockState state;
 
         if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
