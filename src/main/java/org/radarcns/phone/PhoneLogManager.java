@@ -161,10 +161,14 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
             while (c.moveToNext()) {
                 long date = c.getLong(c.getColumnIndex(CallLog.Calls.DATE));
 
+                // If contact, then the contact lookup uri is given
+                boolean targetIsAContact = c.getString(c.getColumnIndex(CallLog.Calls.CACHED_LOOKUP_URI)) != null;
+
                 sendPhoneCall(date / 1000d,
                         c.getString(c.getColumnIndex(CallLog.Calls.NUMBER)),
                         c.getFloat(c.getColumnIndex(CallLog.Calls.DURATION)),
-                        c.getInt(c.getColumnIndex(CallLog.Calls.TYPE))
+                        c.getInt(c.getColumnIndex(CallLog.Calls.TYPE)),
+                        targetIsAContact
                 );
                 lastDateRead = date;
             }
@@ -189,7 +193,6 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         }
 
         // Query all sms with a date later than the last date seen and sort by date
-        int numberUnread = 0;
         try (Cursor c = getService().getContentResolver().query(Telephony.Sms.CONTENT_URI, null, Telephony.Sms.DATE + " > " + lastDateRead, null, Telephony.Sms.DATE + " ASC")) {
             if (c == null) {
                 return;
@@ -198,14 +201,13 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
             while (c.moveToNext()) {
                 long date = c.getLong(c.getColumnIndex(Telephony.Sms.DATE));
 
-                if (c.getInt(c.getColumnIndex(Telephony.Sms.READ)) == 0) {
-                    numberUnread++;
-                }
-
+                // If from contact, then the ID of the sender is a non-zero integer
+                boolean isAContact = c.getInt(c.getColumnIndex(Telephony.Sms.PERSON)) > 0;
                 sendPhoneSms(date / 1000d,
                         c.getString(c.getColumnIndex(Telephony.Sms.ADDRESS)),
                         c.getInt(c.getColumnIndex(Telephony.Sms.TYPE)),
-                        c.getString(c.getColumnIndex(Telephony.Sms.BODY))
+                        c.getString(c.getColumnIndex(Telephony.Sms.BODY)),
+                        isAContact
                 );
                 lastDateRead = date;
             }
@@ -229,7 +231,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         }
     }
 
-    private void sendPhoneCall(double eventTimestamp, String target, float duration, int typeCode) {
+    private void sendPhoneCall(double eventTimestamp, String target, float duration, int typeCode, boolean targetIsContact) {
         ByteBuffer targetKey = null;
         byte[] targetKeyByte = createTargetHashKey(target);
         if (targetKeyByte != null) {
@@ -240,26 +242,50 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
 
         double timestamp = System.currentTimeMillis() / 1000d;
         send(callTable,
-                new PhoneCall(eventTimestamp, timestamp, duration, targetKey, type)
+                new PhoneCall(
+                        eventTimestamp,
+                        timestamp,
+                        duration,
+                        targetKey,
+                        type,
+                        targetIsContact
+                )
         );
 
-        logger.info("Call log: {}, {}, {}, {}, {}, {}", target, targetKey, duration, type, eventTimestamp, timestamp);
+        logger.info("Call log: {}, {}, {}, {}, {}, {}, contact? {}", target, targetKey, duration, type, eventTimestamp, timestamp, targetIsContact);
     }
 
-    private void sendPhoneSms(double eventTimestamp, String target, int typeCode, String message) {
-        byte[] targetKey = createTargetHashKey(target);
-        // TODO: recognise 'automated' sms like verification and notification sms
-        // e.g. 4 digit phone numbers, or target without phone number (just string)
+    private void sendPhoneSms(double eventTimestamp, String target, int typeCode, String message, boolean targetIsContact) {
+        ByteBuffer targetKey = null;
+        byte[] targetKeyByte = createTargetHashKey(target);
+        if (targetKeyByte != null) {
+            targetKey = ByteBuffer.wrap(targetKeyByte);
+        }
 
         PhoneSmsType type = SMS_TYPES.get(typeCode, PhoneSmsType.UNKNOWN);
         int length = message.length();
 
+        // Only incoming messages are associated with a contact. For outgoing we don't know
+        Boolean sendFromContact = null;
+        if (type == PhoneSmsType.INCOMING) {
+            sendFromContact = targetIsContact;
+        }
+
         double timestamp = System.currentTimeMillis() / 1000d;
         send(smsTable,
-                new PhoneSms(eventTimestamp, timestamp, ByteBuffer.wrap(targetKey), type, length)
+                new PhoneSms(
+                        eventTimestamp,
+                        timestamp,
+                        targetKey,
+                        type,
+                        length,
+                        sendFromContact == null ? null : sendFromContact,
+                        isNonNumericTarget(target),
+                        isServiceTarget(target)
+                )
         );
 
-        logger.info("SMS log: {}, {}, {}, {}, {}, {} chars", target, targetKey, type, eventTimestamp, timestamp, length);
+        logger.info("SMS log: {}, {}, {}, {}, {}, {} chars, contact? {}, service? {}, non-numeric? {}", target, targetKey, type, eventTimestamp, timestamp, length, sendFromContact, isServiceTarget(target), isNonNumericTarget(target));
     }
 
     private void sendNumberUnreadSms(int numberUnread) {
@@ -269,6 +295,33 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         );
 
         logger.info("SMS unread: {} {}", timestamp, numberUnread);
+    }
+
+    /**
+     * Returns true if target is non-numeric (e.g. 'Dropbox' or 'Google')
+     * @param target sms/phone target
+     * @return boolean
+     */
+    private boolean isNonNumericTarget(String target) {
+        try {
+            Long targetLong = Long.parseLong(target);
+            if (targetLong < 0) {
+                return true;
+            }
+        } catch (NumberFormatException ex) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if target contains 4 numbers (e.g. '1200' or '1330')
+     * TODO: also recognize 0900/0800 numbers
+     * @param target sms/phone target
+     * @return boolean
+     */
+    private boolean isServiceTarget(String target) {
+        return target.length() <= 4;
     }
 
     /**
