@@ -85,6 +85,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
 
     private final DataCache<MeasurementKey, PhoneCall> callTable;
     private final DataCache<MeasurementKey, PhoneSms> smsTable;
+    private final DataCache<MeasurementKey, PhoneSmsUnread> smsUnreadTable;
     private final Mac sha256;
     private final byte[] hashBuffer = new byte[4];
 
@@ -94,6 +95,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         super(phoneLogService, new BaseDeviceState(), dataHandler, userId, sourceId);
         callTable = getCache(phoneLogService.getTopics().getCallTopic());
         smsTable = getCache(phoneLogService.getTopics().getSmsTopic());
+        smsUnreadTable = getCache(phoneLogService.getTopics().getSmsUnreadTopic());
 
         context = phoneLogService.getApplicationContext();
         preferences = context.getSharedPreferences(PhoneLogService.class.getName(), Context.MODE_PRIVATE);
@@ -113,7 +115,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     }
 
     public void start(@NonNull Set<String> acceptableIds) {
-        // Calls and sms, in and outgoing
+        // Calls and sms, in and outgoing and number of unread sms
         setCallAndSmsLogUpdateRate(CALL_SMS_LOG_INTERVAL_DEFAULT);
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
@@ -176,21 +178,6 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         }
     }
 
-    private void sendPhoneCall(double eventTimestamp, String target, float duration, int typeCode) {
-        ByteBuffer targetKey = null;
-        byte[] targetKeyByte = createTargetHashKey(target);
-        if (targetKeyByte != null) {
-            targetKey = ByteBuffer.wrap(targetKeyByte);
-        }
-
-        PhoneCallType type = CALL_TYPES.get(typeCode, PhoneCallType.UNKNOWN);
-
-        double timestamp = System.currentTimeMillis() / 1000d;
-        send(callTable, new PhoneCall(eventTimestamp, timestamp, duration, targetKey, type));
-
-        logger.info("Call log: {}, {}, {}, {}, {}, {}", target, targetKey, duration, type, eventTimestamp, timestamp);
-    }
-
     private synchronized void processSmsLog() {
         final long initialDateRead = Long.parseLong(preferences.getString(LAST_SMS_KEY, "0"));
 
@@ -231,19 +218,6 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         }
     }
 
-    private void sendPhoneSms(double eventTimestamp, String target, int typeCode, String message) {
-        byte[] targetKey = createTargetHashKey(target);
-
-        PhoneSmsType type = SMS_TYPES.get(typeCode, PhoneSmsType.UNKNOWN);
-        int length = message.length();
-
-        double timestamp = System.currentTimeMillis() / 1000d;
-        send(smsTable, new PhoneSms(
-                eventTimestamp, timestamp, ByteBuffer.wrap(targetKey), type, length));
-
-        logger.info("SMS log: {}, {}, {}, {}, {}, {} chars", target, targetKey, type, eventTimestamp, timestamp, length);
-    }
-
     private void processNumberUnreadSms() {
         try (Cursor c = getService().getContentResolver().query(Telephony.Sms.CONTENT_URI, null, Telephony.Sms.READ + " = 0", null, null)) {
             if (c == null) {
@@ -255,8 +229,46 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         }
     }
 
-    private void sendNumberUnreadSms(int number) {
-        logger.info("SMS unread: {}", number);
+    private void sendPhoneCall(double eventTimestamp, String target, float duration, int typeCode) {
+        ByteBuffer targetKey = null;
+        byte[] targetKeyByte = createTargetHashKey(target);
+        if (targetKeyByte != null) {
+            targetKey = ByteBuffer.wrap(targetKeyByte);
+        }
+
+        PhoneCallType type = CALL_TYPES.get(typeCode, PhoneCallType.UNKNOWN);
+
+        double timestamp = System.currentTimeMillis() / 1000d;
+        send(callTable,
+                new PhoneCall(eventTimestamp, timestamp, duration, targetKey, type)
+        );
+
+        logger.info("Call log: {}, {}, {}, {}, {}, {}", target, targetKey, duration, type, eventTimestamp, timestamp);
+    }
+
+    private void sendPhoneSms(double eventTimestamp, String target, int typeCode, String message) {
+        byte[] targetKey = createTargetHashKey(target);
+        // TODO: recognise 'automated' sms like verification and notification sms
+        // e.g. 4 digit phone numbers, or target without phone number (just string)
+
+        PhoneSmsType type = SMS_TYPES.get(typeCode, PhoneSmsType.UNKNOWN);
+        int length = message.length();
+
+        double timestamp = System.currentTimeMillis() / 1000d;
+        send(smsTable,
+                new PhoneSms(eventTimestamp, timestamp, ByteBuffer.wrap(targetKey), type, length)
+        );
+
+        logger.info("SMS log: {}, {}, {}, {}, {}, {} chars", target, targetKey, type, eventTimestamp, timestamp, length);
+    }
+
+    private void sendNumberUnreadSms(int numberUnread) {
+        double timestamp = System.currentTimeMillis() / 1000d;
+        send(smsUnreadTable,
+                new PhoneSmsUnread(timestamp, timestamp, numberUnread)
+        );
+
+        logger.info("SMS unread: {} {}", timestamp, numberUnread);
     }
 
     /**
