@@ -96,7 +96,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     private final AvroTopic<MeasurementKey, PhoneBatteryLevel> batteryTopic;
 
     private SensorManager sensorManager;
-    private Float lastStepCount;
+    private int lastStepCount = -1;
 
     public PhoneSensorManager(PhoneSensorService context, TableDataHandler dataHandler, String groupId, String sourceId) {
         super(context, new PhoneState(), dataHandler, groupId, sourceId);
@@ -118,6 +118,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     @Override
     public void start(@NonNull final Set<String> acceptableIds) {
         sensorManager = (SensorManager) getService().getSystemService(Context.SENSOR_SERVICE);
+
         // Register all sensors supplied in the constant
         // At time of writing this is: Accelerometer, Light, Gyroscope, Magnetic Field and Step Counter
         for (int sensorType : SENSOR_TYPES_TO_REGISTER) {
@@ -244,7 +245,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
     private void processStep(SensorEvent event) {
         // Number of step since listening or since reboot
-        float stepCount = event.values[0];
+        int stepCount = (int) event.values[0];
 
         double timeReceived = System.currentTimeMillis() / 1_000d;
 
@@ -254,10 +255,10 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         // Send how many steps have been taken since the last time this function was triggered
         // Note: normally processStep() is called for every new step and the stepsSinceLastUpdate is 1
         int stepsSinceLastUpdate;
-        if (lastStepCount == null || lastStepCount > stepCount) {
+        if (lastStepCount == -1 || lastStepCount > stepCount) {
             stepsSinceLastUpdate = 1;
         } else {
-            stepsSinceLastUpdate = (int) (stepCount - lastStepCount);
+            stepsSinceLastUpdate = stepCount - lastStepCount;
         }
         lastStepCount = stepCount;
         send(stepCountTable, new PhoneStepCount(timestamp, timeReceived, stepsSinceLastUpdate));
