@@ -27,6 +27,7 @@ public class PhoneLogTopics extends DeviceTopics {
 
     private final AvroTopic<MeasurementKey, PhoneCall> callTopic;
     private final AvroTopic<MeasurementKey, PhoneSms> smsTopic;
+    private final AvroTopic<MeasurementKey, PhoneSmsUnread> smsUnreadTopic;
 
     public static PhoneLogTopics getInstance() {
         synchronized (syncObject) {
@@ -44,6 +45,9 @@ public class PhoneLogTopics extends DeviceTopics {
         smsTopic = createTopic("android_phone_sms",
                 PhoneSms.getClassSchema(),
                 PhoneSms.class);
+        smsUnreadTopic = createTopic("android_phone_sms_unread",
+                PhoneSmsUnread.getClassSchema(),
+                PhoneSmsUnread.class);
     }
 
     public AvroTopic<MeasurementKey, PhoneCall> getCallTopic() {
@@ -52,5 +56,9 @@ public class PhoneLogTopics extends DeviceTopics {
 
     public AvroTopic<MeasurementKey, PhoneSms> getSmsTopic() {
         return smsTopic;
+    }
+
+    public AvroTopic<MeasurementKey, PhoneSmsUnread> getSmsUnreadTopic() {
+        return smsUnreadTopic;
     }
 }
