@@ -48,7 +48,6 @@ import static android.os.BatteryManager.BATTERY_STATUS_FULL;
 import static android.os.BatteryManager.BATTERY_STATUS_NOT_CHARGING;
 import static android.os.BatteryManager.BATTERY_STATUS_UNKNOWN;
 
-/** Manages Phone sensors */
 class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, PhoneState> implements DeviceManager, SensorEventListener {
     private static final Logger logger = LoggerFactory.getLogger(PhoneSensorManager.class);
 
@@ -112,53 +111,22 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         this.batteryTopic = topics.getBatteryLevelTopic();
 
         sensorManager = null;
-        // Initialize the Device Manager using your API key. You need to have Internet access at this point.
 
         setName(android.os.Build.MODEL);
     }
 
     @Override
     public void start(@NonNull final Set<String> acceptableIds) {
-
-        // Accelerometer
-        if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
-            // success! we have an accelerometer
-            Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        } else {
-            logger.warn("Phone Accelerometer not found");
-        }
-
-        // Light
-        if (sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT) != null) {
-            Sensor lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-            sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
-        } else {
-            logger.warn("Phone Light sensor not found");
-        }
-
-        // Gyroscope
-        if (sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null) {
-            Sensor gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-            sensorManager.registerListener(this, gyroscope, SENSOR_DELAY_DEFAULT);
-        } else {
-            logger.warn("Phone Gyroscope not found");
-        }
-
-        // Magnetic field
-        if (sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null) {
-            Sensor magneticField = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-            sensorManager.registerListener(this, magneticField, SENSOR_DELAY_DEFAULT);
-        } else {
-            logger.warn("Phone magnetometer not found");
-        }
-
-        // Steps
-        if (sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) != null) {
-            Sensor stepCounter = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
-            sensorManager.registerListener(this, stepCounter, SENSOR_DELAY_DEFAULT);
-        } else {
-            logger.warn("Phon step counter not found");
+        sensorManager = (SensorManager) getService().getSystemService(Context.SENSOR_SERVICE);
+        // Register all sensors supplied in the constant
+        // At time of writing this is: Accelerometer, Light, Gyroscope, Magnetic Field and Step Counter
+        for (int sensorType : SENSOR_TYPES_TO_REGISTER) {
+            if (sensorManager.getDefaultSensor(sensorType) != null) {
+                Sensor sensor = sensorManager.getDefaultSensor(sensorType);
+                sensorManager.registerListener(this, sensor, SENSOR_DELAYS.get(sensorType, SENSOR_DELAY_DEFAULT));
+            } else {
+                logger.warn("The sensor '{}' could not be found", SENSOR_NAMES.get(sensorType,"unknown"));
+            }
         }
 
         // Battery
@@ -171,20 +139,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
                 }
             }
         }, batteryFilter));
-
-        // Screen active
-        IntentFilter screenStateFilter = new IntentFilter();
-        screenStateFilter.addAction(Intent.ACTION_USER_PRESENT);
-        screenStateFilter.addAction(Intent.ACTION_SCREEN_OFF);
-        getService().registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if (intent.getAction().equals(Intent.ACTION_USER_PRESENT) ||
-                    intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
-                    processInteractionState(intent);
-                }
-            }
-        }, screenStateFilter);
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
     }
@@ -223,7 +177,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
      * First calculates the seconds passed since the event, by taking difference between current
      * uptime and uptime at the moment of the event.
      * Then this is substracted from the current UTC time.
-     * @param eventTimestampNanos
+     * @param eventTimestampNanos nanoseconds uptime at event
      * @return timestamp in seconds UTC
      */
     private static double eventTimestampToSecondsUTC(long eventTimestampNanos) {
