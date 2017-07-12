@@ -54,8 +54,13 @@ public class PhoneSensorService extends DeviceService {
     @Override
     protected List<AvroTopic<MeasurementKey, ? extends SpecificRecord>> getCachedTopics() {
         return Arrays.<AvroTopic<MeasurementKey, ? extends SpecificRecord>>asList(
-                getTopics().getAccelerationTopic(), getTopics().getLightTopic(),
-                getTopics().getUserInteractionTopic());
+                 getTopics().getAccelerationTopic()
+                ,getTopics().getLightTopic()
+                ,getTopics().getUserInteractionTopic()
+                ,getTopics().getGyroscopeTopic()
+                ,getTopics().getMagneticFieldTopic()
+                ,getTopics().getStepCountTopic()
+        );
     }
 
     public String getSourceId() {

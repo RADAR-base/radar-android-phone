@@ -27,6 +27,7 @@ import android.hardware.SensorManager;
 import android.os.BatteryManager;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
+import android.util.SparseIntArray;
 
 import org.radarcns.android.data.DataCache;
 import org.radarcns.android.data.TableDataHandler;
@@ -47,13 +48,37 @@ import static android.os.BatteryManager.BATTERY_STATUS_FULL;
 import static android.os.BatteryManager.BATTERY_STATUS_NOT_CHARGING;
 import static android.os.BatteryManager.BATTERY_STATUS_UNKNOWN;
 
-/** Manages Phone sensors */
 class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, PhoneState> implements DeviceManager, SensorEventListener {
     private static final Logger logger = LoggerFactory.getLogger(PhoneSensorManager.class);
 
-    private static final float EARTH_GRAVITATIONAL_ACCELERATION = 9.80665f;
-    private static final SparseArray<BatteryStatus> BATTERY_TYPES = new SparseArray<>(5);
+    // Sensors to register, together with the name of the sensor
+    private static final int[] SENSOR_TYPES_TO_REGISTER = {
+        Sensor.TYPE_ACCELEROMETER,
+        Sensor.TYPE_LIGHT,
+        Sensor.TYPE_MAGNETIC_FIELD,
+        Sensor.TYPE_GYROSCOPE,
+        Sensor.TYPE_STEP_COUNTER
+    };
 
+    // Names of the sensor (for warning message if unable to register)
+    private static final SparseArray<String> SENSOR_NAMES = new SparseArray<>(5);
+    static {
+        SENSOR_NAMES.append(Sensor.TYPE_ACCELEROMETER, Sensor.STRING_TYPE_ACCELEROMETER);
+        SENSOR_NAMES.append(Sensor.TYPE_LIGHT, Sensor.STRING_TYPE_LIGHT);
+        SENSOR_NAMES.append(Sensor.TYPE_MAGNETIC_FIELD, Sensor.STRING_TYPE_MAGNETIC_FIELD);
+        SENSOR_NAMES.append(Sensor.TYPE_GYROSCOPE, Sensor.STRING_TYPE_GYROSCOPE);
+        SENSOR_NAMES.append(Sensor.TYPE_STEP_COUNTER, Sensor.STRING_TYPE_STEP_COUNTER);
+    }
+
+    // Sensor Delay if different from default
+    private static final SparseIntArray SENSOR_DELAYS = new SparseIntArray(5);
+    static {
+        SENSOR_DELAYS.append(Sensor.TYPE_STEP_COUNTER, SensorManager.SENSOR_DELAY_UI);
+    }
+
+    private static final int SENSOR_DELAY_DEFAULT = SensorManager.SENSOR_DELAY_NORMAL;
+
+    private static final SparseArray<BatteryStatus> BATTERY_TYPES = new SparseArray<>(5);
     static {
         BATTERY_TYPES.append(BATTERY_STATUS_UNKNOWN, BatteryStatus.UNKNOWN);
         BATTERY_TYPES.append(BATTERY_STATUS_CHARGING, BatteryStatus.CHARGING);
@@ -64,19 +89,26 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
     private final DataCache<MeasurementKey, PhoneAcceleration> accelerationTable;
     private final DataCache<MeasurementKey, PhoneLight> lightTable;
+    private final DataCache<MeasurementKey, PhoneStepCount> stepCountTable;
+    private final DataCache<MeasurementKey, PhoneGyroscope> gyroscopeTable;
+    private final DataCache<MeasurementKey, PhoneMagneticField> magneticFieldTable;
     private final AvroTopic<MeasurementKey, PhoneBatteryLevel> batteryTopic;
 
     private SensorManager sensorManager;
+    private int lastStepCount = -1;
 
     public PhoneSensorManager(PhoneSensorService context, TableDataHandler dataHandler, String groupId, String sourceId) {
         super(context, new PhoneState(), dataHandler, groupId, sourceId);
         PhoneSensorTopics topics = PhoneSensorTopics.getInstance();
         this.accelerationTable = dataHandler.getCache(topics.getAccelerationTopic());
         this.lightTable = dataHandler.getCache(topics.getLightTopic());
+        this.stepCountTable = dataHandler.getCache(topics.getStepCountTopic());
+        this.gyroscopeTable = dataHandler.getCache(topics.getGyroscopeTopic());
+        this.magneticFieldTable = dataHandler.getCache(topics.getMagneticFieldTopic());
+
         this.batteryTopic = topics.getBatteryLevelTopic();
 
         sensorManager = null;
-        // Initialize the Device Manager using your API key. You need to have Internet access at this point.
 
         setName(android.os.Build.MODEL);
     }
@@ -85,21 +117,15 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     public void start(@NonNull final Set<String> acceptableIds) {
         sensorManager = (SensorManager) getService().getSystemService(Context.SENSOR_SERVICE);
 
-        // Accelerometer
-        if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
-            // success! we have an accelerometer
-            Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        } else {
-            logger.warn("Phone Accelerometer not found");
-        }
-
-        // Light
-        if (sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT) != null) {
-            Sensor lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-            sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
-        } else {
-            logger.warn("Phone Light sensor not found");
+        // Register all sensors supplied in the constant
+        // At time of writing this is: Accelerometer, Light, Gyroscope, Magnetic Field and Step Counter
+        for (int sensorType : SENSOR_TYPES_TO_REGISTER) {
+            if (sensorManager.getDefaultSensor(sensorType) != null) {
+                Sensor sensor = sensorManager.getDefaultSensor(sensorType);
+                sensorManager.registerListener(this, sensor, SENSOR_DELAYS.get(sensorType, SENSOR_DELAY_DEFAULT));
+            } else {
+                logger.warn("The sensor '{}' could not be found", SENSOR_NAMES.get(sensorType,"unknown"));
+            }
         }
 
         // Battery
@@ -118,12 +144,24 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if ( event.sensor.getType() == Sensor.TYPE_ACCELEROMETER ) {
-            processAcceleration(event);
-        } else if ( event.sensor.getType() == Sensor.TYPE_LIGHT ) {
-            processLight(event);
-        } else {
-            logger.info("Phone registered other sensor change: '{}'", event.sensor.getType());
+        switch (event.sensor.getType()) {
+            case Sensor.TYPE_ACCELEROMETER:
+                processAcceleration(event);
+                break;
+            case Sensor.TYPE_LIGHT:
+                processLight(event);
+                break;
+            case Sensor.TYPE_GYROSCOPE:
+                processGyroscope(event);
+                break;
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                processMagneticField(event);
+                break;
+            case Sensor.TYPE_STEP_COUNTER:
+                processStep(event);
+                break;
+            default:
+                logger.debug("Phone registered unknown sensor change: '{}'", event.sensor.getType());
         }
     }
 
@@ -132,36 +170,101 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         // no action
     }
 
-    public void processAcceleration(SensorEvent event) {
+    /**
+     * Convert event timestamp to seconds UTC
+     * Event timestamp is given in nanoseconds uptime
+     * First calculates the seconds passed since the event, by taking difference between current
+     * uptime and uptime at the moment of the event.
+     * Then this is substracted from the current UTC time.
+     * @param eventTimestampNanos nanoseconds uptime at event
+     * @return timestamp in seconds UTC
+     */
+    private static double eventTimestampToSecondsUTC(long eventTimestampNanos) {
+        double currentSeconds = System.currentTimeMillis() / 1_000d;
+        double secondsSinceEvent = (System.nanoTime() - eventTimestampNanos) / 1_000_000_000d;
+
+        return currentSeconds - secondsSinceEvent;
+    }
+
+    private void processAcceleration(SensorEvent event) {
         // x,y,z are in m/s2
-        float x = event.values[0] / EARTH_GRAVITATIONAL_ACCELERATION;
-        float y = event.values[1] / EARTH_GRAVITATIONAL_ACCELERATION;
-        float z = event.values[2] / EARTH_GRAVITATIONAL_ACCELERATION;
+        float x = event.values[0] / SensorManager.GRAVITY_EARTH;
+        float y = event.values[1] / SensorManager.GRAVITY_EARTH;
+        float z = event.values[2] / SensorManager.GRAVITY_EARTH;
         getState().setAcceleration(x, y, z);
         
         double timeReceived = System.currentTimeMillis() / 1_000d;
-        
-        // nanoseconds uptime to seconds utc by calculating
-        // current timestamp minus difference between current uptime and uptime at sensor event.
-        // this accounts for the event happing slightly before processing it here
-        double time = ( timeReceived - (System.nanoTime() - event.timestamp) / 1_000_000_000d );    
 
-        send(accelerationTable, new PhoneAcceleration(time, timeReceived, x, y, z));
+        // nanoseconds uptime to seconds utc
+        double timestamp = eventTimestampToSecondsUTC(event.timestamp);
+
+        send(accelerationTable, new PhoneAcceleration(timestamp, timeReceived, x, y, z));
     }
 
-    public void processLight(SensorEvent event) {
+    private void processLight(SensorEvent event) {
         float lightValue = event.values[0];
         getState().setLight(lightValue);
         
-        double timeReceived = System.currentTimeMillis() / 1000d;
+        double timeReceived = System.currentTimeMillis() / 1_000d;
         
         // nanoseconds uptime to seconds utc
-        double time = ( timeReceived - (System.nanoTime() - event.timestamp) / 1_000_000_000d );      
+        double timestamp = eventTimestampToSecondsUTC(event.timestamp);
 
-        send(lightTable, new PhoneLight(time, timeReceived, lightValue));
+        send(lightTable, new PhoneLight(timestamp, timeReceived, lightValue));
     }
 
-    public void processBatteryStatus(Intent intent) {
+    private void processGyroscope(SensorEvent event) {
+        // Not normalized axis of rotation in rad/s
+        float axisX = event.values[0];
+        float axisY = event.values[1];
+        float axisZ = event.values[2];
+
+        double timeReceived = System.currentTimeMillis() / 1_000d;
+
+        // nanoseconds uptime to seconds utc
+        double timestamp = eventTimestampToSecondsUTC(event.timestamp);
+
+        send(gyroscopeTable, new PhoneGyroscope(timestamp, timeReceived, axisX, axisY, axisZ));
+    }
+
+    private void processMagneticField(SensorEvent event) {
+        // Magnetic field in microTesla
+        float axisX = event.values[0];
+        float axisY = event.values[1];
+        float axisZ = event.values[2];
+
+        double timeReceived = System.currentTimeMillis() / 1_000d;
+
+        // nanoseconds uptime to seconds utc
+        double timestamp = eventTimestampToSecondsUTC(event.timestamp);
+        ;
+        send(magneticFieldTable, new PhoneMagneticField(timestamp, timeReceived, axisX, axisY, axisZ));
+    }
+
+    private void processStep(SensorEvent event) {
+        // Number of step since listening or since reboot
+        int stepCount = (int) event.values[0];
+
+        double timeReceived = System.currentTimeMillis() / 1_000d;
+
+        // nanoseconds uptime to seconds utc
+        double timestamp = eventTimestampToSecondsUTC(event.timestamp);
+
+        // Send how many steps have been taken since the last time this function was triggered
+        // Note: normally processStep() is called for every new step and the stepsSinceLastUpdate is 1
+        int stepsSinceLastUpdate;
+        if (lastStepCount == -1 || lastStepCount > stepCount) {
+            stepsSinceLastUpdate = 1;
+        } else {
+            stepsSinceLastUpdate = stepCount - lastStepCount;
+        }
+        lastStepCount = stepCount;
+        send(stepCountTable, new PhoneStepCount(timestamp, timeReceived, stepsSinceLastUpdate));
+
+        logger.info("Steps taken: {}", stepsSinceLastUpdate);
+    }
+
+    private void processBatteryStatus(Intent intent) {
         if (intent == null) {
             return;
         }

@@ -28,6 +28,9 @@ public class PhoneSensorTopics extends DeviceTopics {
     private final AvroTopic<MeasurementKey, PhoneAcceleration> accelerationTopic;
     private final AvroTopic<MeasurementKey, PhoneBatteryLevel> batteryLevelTopic;
     private final AvroTopic<MeasurementKey, PhoneLight> lightTopic;
+    private final AvroTopic<MeasurementKey, PhoneStepCount> stepCountTopic;
+    private final AvroTopic<MeasurementKey, PhoneGyroscope> gyroscopeTopic;
+    private final AvroTopic<MeasurementKey, PhoneMagneticField> magneticFieldTopic;
 
     public static PhoneSensorTopics getInstance() {
         synchronized (syncObject) {
@@ -48,6 +51,15 @@ public class PhoneSensorTopics extends DeviceTopics {
         lightTopic = createTopic("android_phone_light",
                 PhoneLight.getClassSchema(),
                 PhoneLight.class);
+        stepCountTopic = createTopic("android_phone_step_count",
+                PhoneStepCount.getClassSchema(),
+                PhoneStepCount.class);
+        gyroscopeTopic = createTopic("android_phone_gyroscope",
+                PhoneGyroscope.getClassSchema(),
+                PhoneGyroscope.class);
+        magneticFieldTopic = createTopic("android_phone_magnetic_field",
+                PhoneMagneticField.getClassSchema(),
+                PhoneMagneticField.class);
     }
 
     public AvroTopic<MeasurementKey, PhoneAcceleration> getAccelerationTopic() {
@@ -60,5 +72,17 @@ public class PhoneSensorTopics extends DeviceTopics {
 
     public AvroTopic<MeasurementKey, PhoneLight> getLightTopic() {
         return lightTopic;
+    }
+
+    public AvroTopic<MeasurementKey, PhoneStepCount> getStepCountTopic() {
+        return stepCountTopic;
+    }
+
+    public AvroTopic<MeasurementKey, PhoneGyroscope> getGyroscopeTopic() {
+        return gyroscopeTopic;
+    }
+
+    public AvroTopic<MeasurementKey, PhoneMagneticField> getMagneticFieldTopic() {
+        return magneticFieldTopic;
     }
 }
