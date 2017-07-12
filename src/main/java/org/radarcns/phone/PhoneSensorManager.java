@@ -65,7 +65,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     private final DataCache<MeasurementKey, PhoneAcceleration> accelerationTable;
     private final DataCache<MeasurementKey, PhoneLight> lightTable;
     private final AvroTopic<MeasurementKey, PhoneBatteryLevel> batteryTopic;
-    private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
 
     private SensorManager sensorManager;
 
@@ -74,7 +73,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         PhoneSensorTopics topics = PhoneSensorTopics.getInstance();
         this.accelerationTable = dataHandler.getCache(topics.getAccelerationTopic());
         this.lightTable = dataHandler.getCache(topics.getLightTopic());
-        this.userInteractionTable = dataHandler.getCache(topics.getUserInteractionTopic());
         this.batteryTopic = topics.getBatteryLevelTopic();
 
         sensorManager = null;
@@ -114,20 +112,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
                 }
             }
         }, batteryFilter));
-
-        // Screen active
-        IntentFilter screenStateFilter = new IntentFilter();
-        screenStateFilter.addAction(Intent.ACTION_USER_PRESENT);
-        screenStateFilter.addAction(Intent.ACTION_SCREEN_OFF);
-        getService().registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if (intent.getAction().equals(Intent.ACTION_USER_PRESENT) ||
-                    intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
-                    processInteractionState(intent);
-                }
-            }
-        }, screenStateFilter);
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
     }
@@ -195,23 +179,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         double time = System.currentTimeMillis() / 1000d;
         trySend(batteryTopic, 0L, new PhoneBatteryLevel(
                 time, time, batteryPct, isPlugged, batteryStatus));
-    }
-
-    public void processInteractionState(Intent intent) {
-        PhoneLockState state;
-
-        if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
-            state = PhoneLockState.STANDBY;
-        } else {
-            state = PhoneLockState.UNLOCKED;
-        }
-
-        double timestamp = System.currentTimeMillis() / 1000d;
-        PhoneUserInteraction value = new PhoneUserInteraction(
-                timestamp, timestamp, state);
-        send(userInteractionTable, value);
-
-        logger.info("Interaction State: {} {}", timestamp, state);
     }
 
     @Override
