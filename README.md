@@ -23,6 +23,7 @@ This plugin contains three services, to enable them add their provider to the `d
 - `PhoneSensorProvider` provides a service that monitors battery level, light and user interaction.
 - `PhoneLogProvider` provides a service that periodically reads the phone logs of SMSes and calls made.
 - `PhoneLocationProvider` provides a service that monitors current GPS and/or network location.
+- `PhoneUsageProvider` provides a service that monitors application usage.
 
 ## Contributing
 

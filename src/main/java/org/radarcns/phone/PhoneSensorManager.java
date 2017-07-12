@@ -89,7 +89,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
     private final DataCache<MeasurementKey, PhoneAcceleration> accelerationTable;
     private final DataCache<MeasurementKey, PhoneLight> lightTable;
-    private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
     private final DataCache<MeasurementKey, PhoneStepCount> stepCountTable;
     private final DataCache<MeasurementKey, PhoneGyroscope> gyroscopeTable;
     private final DataCache<MeasurementKey, PhoneMagneticField> magneticFieldTable;
@@ -103,7 +102,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         PhoneSensorTopics topics = PhoneSensorTopics.getInstance();
         this.accelerationTable = dataHandler.getCache(topics.getAccelerationTopic());
         this.lightTable = dataHandler.getCache(topics.getLightTopic());
-        this.userInteractionTable = dataHandler.getCache(topics.getUserInteractionTopic());
         this.stepCountTable = dataHandler.getCache(topics.getStepCountTopic());
         this.gyroscopeTable = dataHandler.getCache(topics.getGyroscopeTopic());
         this.magneticFieldTable = dataHandler.getCache(topics.getMagneticFieldTopic());
@@ -284,23 +282,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         double time = System.currentTimeMillis() / 1000d;
         trySend(batteryTopic, 0L, new PhoneBatteryLevel(
                 time, time, batteryPct, isPlugged, batteryStatus));
-    }
-
-    private void processInteractionState(Intent intent) {
-        PhoneLockState state;
-
-        if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
-            state = PhoneLockState.STANDBY;
-        } else {
-            state = PhoneLockState.UNLOCKED;
-        }
-
-        double timestamp = System.currentTimeMillis() / 1000d;
-        PhoneUserInteraction value = new PhoneUserInteraction(
-                timestamp, timestamp, state);
-        send(userInteractionTable, value);
-
-        logger.info("Interaction State: {} {}", timestamp, state);
     }
 
     @Override

@@ -28,7 +28,6 @@ public class PhoneSensorTopics extends DeviceTopics {
     private final AvroTopic<MeasurementKey, PhoneAcceleration> accelerationTopic;
     private final AvroTopic<MeasurementKey, PhoneBatteryLevel> batteryLevelTopic;
     private final AvroTopic<MeasurementKey, PhoneLight> lightTopic;
-    private final AvroTopic<MeasurementKey, PhoneUserInteraction> interactionTopic;
     private final AvroTopic<MeasurementKey, PhoneStepCount> stepCountTopic;
     private final AvroTopic<MeasurementKey, PhoneGyroscope> gyroscopeTopic;
     private final AvroTopic<MeasurementKey, PhoneMagneticField> magneticFieldTopic;
@@ -52,9 +51,6 @@ public class PhoneSensorTopics extends DeviceTopics {
         lightTopic = createTopic("android_phone_light",
                 PhoneLight.getClassSchema(),
                 PhoneLight.class);
-        interactionTopic = createTopic("android_phone_user_interaction",
-                PhoneUserInteraction.getClassSchema(),
-                PhoneUserInteraction.class);
         stepCountTopic = createTopic("android_phone_step_count",
                 PhoneStepCount.getClassSchema(),
                 PhoneStepCount.class);
@@ -76,10 +72,6 @@ public class PhoneSensorTopics extends DeviceTopics {
 
     public AvroTopic<MeasurementKey, PhoneLight> getLightTopic() {
         return lightTopic;
-    }
-
-    public AvroTopic<MeasurementKey, PhoneUserInteraction> getUserInteractionTopic() {
-        return interactionTopic;
     }
 
     public AvroTopic<MeasurementKey, PhoneStepCount> getStepCountTopic() {
