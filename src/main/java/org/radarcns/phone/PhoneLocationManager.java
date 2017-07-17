@@ -74,10 +74,10 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
     private int frequency;
     private float batteryLevelMinimum;
     private float batteryLevelReduced;
-    private long gpsInterval;
-    private long gpsIntervalReduced;
-    private long networkInterval;
-    private long networkIntervalReduced;
+    private int gpsInterval;
+    private int gpsIntervalReduced;
+    private int networkInterval;
+    private int networkIntervalReduced;
 
     public PhoneLocationManager(PhoneLocationService context, TableDataHandler dataHandler, String groupId, String sourceId) {
         super(context, new BaseDeviceState(), dataHandler, groupId, sourceId);
@@ -305,7 +305,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         this.onBatteryLevelChanged(batteryLevelReceiver.getLevel(), batteryLevelReceiver.isPlugged());
     }
 
-    public synchronized void setIntervals(long gpsInterval, long gpsIntervalReduced, long networkInterval, long networkIntervalReduced) {
+    public synchronized void setIntervals(int gpsInterval, int gpsIntervalReduced, int networkInterval, int networkIntervalReduced) {
         this.gpsInterval = gpsInterval;
         this.gpsIntervalReduced = gpsIntervalReduced;
         this.networkInterval = networkInterval;

@@ -37,10 +37,10 @@ public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState
     static final String PHONE_LOCATION_BATTERY_LEVEL_REDUCED = "phone.location.battery.level.reduced";
     static final String PHONE_LOCATION_BATTERY_LEVEL_MINIMUM = "phone.location.battery.level.minimum";
 
-    private static final long LOCATION_GPS_INTERVAL_DEFAULT = 60*60; // seconds
-    private static final long LOCATION_GPS_INTERVAL_REDUCED_DEFAULT = 5 * LOCATION_GPS_INTERVAL_DEFAULT; // seconds
-    private static final long LOCATION_NETWORK_INTERVAL_DEFAULT = 10*60; // seconds
-    private static final long LOCATION_NETWORK_INTERVAL_REDUCED_DEFAULT = 5 * LOCATION_NETWORK_INTERVAL_DEFAULT; // seconds
+    private static final int LOCATION_GPS_INTERVAL_DEFAULT = 60*60; // seconds
+    private static final int LOCATION_GPS_INTERVAL_REDUCED_DEFAULT = 5 * LOCATION_GPS_INTERVAL_DEFAULT; // seconds
+    private static final int LOCATION_NETWORK_INTERVAL_DEFAULT = 10*60; // seconds
+    private static final int LOCATION_NETWORK_INTERVAL_REDUCED_DEFAULT = 5 * LOCATION_NETWORK_INTERVAL_DEFAULT; // seconds
 
     private static final float MINIMUM_BATTERY_LEVEL_DEFAULT = 0.15f;
     private static final float REDUCED_BATTERY_LEVEL_DEFAULT = 0.3f;
@@ -67,10 +67,10 @@ public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState
 
 
 
-        bundle.putLong(RadarConfiguration.RADAR_PREFIX + PHONE_LOCATION_GPS_INTERVAL, config.getLong(PHONE_LOCATION_GPS_INTERVAL, LOCATION_GPS_INTERVAL_DEFAULT));
-        bundle.putLong(RadarConfiguration.RADAR_PREFIX + PHONE_LOCATION_GPS_INTERVAL_REDUCED, config.getLong(PHONE_LOCATION_GPS_INTERVAL_REDUCED, LOCATION_GPS_INTERVAL_REDUCED_DEFAULT));
-        bundle.putLong(RadarConfiguration.RADAR_PREFIX + PHONE_LOCATION_NETWORK_INTERVAL, config.getLong(PHONE_LOCATION_NETWORK_INTERVAL, LOCATION_NETWORK_INTERVAL_DEFAULT));
-        bundle.putLong(RadarConfiguration.RADAR_PREFIX + PHONE_LOCATION_NETWORK_INTERVAL_REDUCED, config.getLong(PHONE_LOCATION_NETWORK_INTERVAL_REDUCED, LOCATION_NETWORK_INTERVAL_REDUCED_DEFAULT));
+        bundle.putInt(RadarConfiguration.RADAR_PREFIX + PHONE_LOCATION_GPS_INTERVAL, config.getInt(PHONE_LOCATION_GPS_INTERVAL, LOCATION_GPS_INTERVAL_DEFAULT));
+        bundle.putInt(RadarConfiguration.RADAR_PREFIX + PHONE_LOCATION_GPS_INTERVAL_REDUCED, config.getInt(PHONE_LOCATION_GPS_INTERVAL_REDUCED, LOCATION_GPS_INTERVAL_REDUCED_DEFAULT));
+        bundle.putInt(RadarConfiguration.RADAR_PREFIX + PHONE_LOCATION_NETWORK_INTERVAL, config.getInt(PHONE_LOCATION_NETWORK_INTERVAL, LOCATION_NETWORK_INTERVAL_DEFAULT));
+        bundle.putInt(RadarConfiguration.RADAR_PREFIX + PHONE_LOCATION_NETWORK_INTERVAL_REDUCED, config.getInt(PHONE_LOCATION_NETWORK_INTERVAL_REDUCED, LOCATION_NETWORK_INTERVAL_REDUCED_DEFAULT));
         bundle.putFloat(RadarConfiguration.RADAR_PREFIX + PHONE_LOCATION_BATTERY_LEVEL_REDUCED, config.getFloat(PHONE_LOCATION_BATTERY_LEVEL_REDUCED, REDUCED_BATTERY_LEVEL_DEFAULT));
         bundle.putFloat(RadarConfiguration.RADAR_PREFIX + PHONE_LOCATION_BATTERY_LEVEL_MINIMUM, config.getFloat(PHONE_LOCATION_BATTERY_LEVEL_MINIMUM, MINIMUM_BATTERY_LEVEL_DEFAULT));
     }

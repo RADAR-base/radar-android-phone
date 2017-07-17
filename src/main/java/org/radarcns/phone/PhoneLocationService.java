@@ -33,10 +33,10 @@ import static org.radarcns.phone.PhoneLocationProvider.PHONE_LOCATION_NETWORK_IN
 
 public class PhoneLocationService extends DeviceService {
     private String sourceId;
-    private long gpsInterval;
-    private long gpsIntervalReduced;
-    private long networkInterval;
-    private long networkIntervalReduced;
+    private int gpsInterval;
+    private int gpsIntervalReduced;
+    private int networkInterval;
+    private int networkIntervalReduced;
     private float batteryLevelMinimum;
     private float batteryLevelReduced;
 
@@ -71,11 +71,11 @@ public class PhoneLocationService extends DeviceService {
 
     @Override
     protected void onInvocation(Bundle bundle) {
-        gpsInterval = bundle.getLong(PHONE_LOCATION_GPS_INTERVAL);
-        gpsIntervalReduced = bundle.getLong(PHONE_LOCATION_GPS_INTERVAL_REDUCED);
-        networkInterval = bundle.getLong(PHONE_LOCATION_NETWORK_INTERVAL);
-        networkIntervalReduced = bundle.getLong(PHONE_LOCATION_NETWORK_INTERVAL_REDUCED);
-        batteryLevelMinimum = bundle.getLong(PHONE_LOCATION_BATTERY_LEVEL_MINIMUM);
+        gpsInterval = bundle.getInt(PHONE_LOCATION_GPS_INTERVAL);
+        gpsIntervalReduced = bundle.getInt(PHONE_LOCATION_GPS_INTERVAL_REDUCED);
+        networkInterval = bundle.getInt(PHONE_LOCATION_NETWORK_INTERVAL);
+        networkIntervalReduced = bundle.getInt(PHONE_LOCATION_NETWORK_INTERVAL_REDUCED);
+        batteryLevelMinimum = bundle.getInt(PHONE_LOCATION_BATTERY_LEVEL_MINIMUM);
         batteryLevelReduced = bundle.getFloat(PHONE_LOCATION_BATTERY_LEVEL_REDUCED);
         DeviceManager manager = getDeviceManager();
         if (manager != null) {
