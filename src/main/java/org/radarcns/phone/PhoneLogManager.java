@@ -27,7 +27,6 @@ import android.database.Cursor;
 import android.provider.CallLog;
 import android.provider.Telephony;
 import android.support.annotation.NonNull;
-import android.util.Base64;
 import android.util.SparseArray;
 
 import org.radarcns.android.data.DataCache;
@@ -35,36 +34,29 @@ import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
+import org.radarcns.android.util.HashGenerator;
 import org.radarcns.key.MeasurementKey;
-import org.radarcns.util.Serialization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Set;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
+import java.util.regex.Pattern;
 
 import static android.content.Context.ALARM_SERVICE;
 
 public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, BaseDeviceState> {
     private static final Logger logger = LoggerFactory.getLogger(PhoneLogManager.class);
-    private final SharedPreferences preferences;
 
     private static final SparseArray<PhoneCallType> CALL_TYPES = new SparseArray<>(4);
     private static final SparseArray<PhoneSmsType> SMS_TYPES = new SparseArray<>(7);
     private static final String LAST_SMS_KEY = "last.sms.time";
     private static final String LAST_CALL_KEY = "last.call.time";
-    private static final String HASH_KEY = "hash.key";
     private static final String ACTIVITY_LAUNCH_WAKE = "ACTIVITY_LAUNCH_WAKE";
     private static final int REQUEST_CODE_PENDING_INTENT = 1;
     private static final long CALL_SMS_LOG_INTERVAL_DEFAULT = 24 * 60 * 60; // seconds
     private static final long CALL_SMS_LOG_HISTORY_DEFAULT = 24 * 60 * 60; // seconds
+    private static final Pattern IS_NUMBER = Pattern.compile("^[+-]?\\d+$");
 
     static {
         CALL_TYPES.append(CallLog.Calls.INCOMING_TYPE, PhoneCallType.INCOMING);
@@ -86,8 +78,8 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     private final DataCache<MeasurementKey, PhoneCall> callTable;
     private final DataCache<MeasurementKey, PhoneSms> smsTable;
     private final DataCache<MeasurementKey, PhoneSmsUnread> smsUnreadTable;
-    private final Mac sha256;
-    private final byte[] hashBuffer = new byte[4];
+    private final HashGenerator hashGenerator;
+    private final SharedPreferences preferences;
 
     private Context context;
 
@@ -99,17 +91,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
 
         context = phoneLogService.getApplicationContext();
         preferences = context.getSharedPreferences(PhoneLogService.class.getName(), Context.MODE_PRIVATE);
-
-        try {
-            this.sha256 = Mac.getInstance("HmacSHA256");
-            sha256.init(new SecretKeySpec(loadHashKey(), "HmacSHA256"));
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("Cannot retrieve hashing algorithm", ex);
-        } catch (InvalidKeyException ex) {
-            throw new IllegalStateException("Encoding is invalid", ex);
-        } catch (IOException ex) {
-            throw new IllegalStateException("Cannot load hashing key", ex);
-        }
+        hashGenerator = new HashGenerator(preferences);
 
         setName(android.os.Build.MODEL);
     }
@@ -232,11 +214,8 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     }
 
     private void sendPhoneCall(double eventTimestamp, String target, float duration, int typeCode, boolean targetIsContact) {
-        ByteBuffer targetKey = null;
-        byte[] targetKeyByte = createTargetHashKey(target);
-        if (targetKeyByte != null) {
-            targetKey = ByteBuffer.wrap(targetKeyByte);
-        }
+        Long phoneNumber = getNumericPhoneNumber(target);
+        ByteBuffer targetKey = createTargetHashKey(target, phoneNumber);
 
         PhoneCallType type = CALL_TYPES.get(typeCode, PhoneCallType.UNKNOWN);
 
@@ -248,7 +227,9 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
                         duration,
                         targetKey,
                         type,
-                        targetIsContact
+                        targetIsContact,
+                        phoneNumber == null,
+                        target.length()
                 )
         );
 
@@ -256,11 +237,8 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     }
 
     private void sendPhoneSms(double eventTimestamp, String target, int typeCode, String message, boolean targetIsContact) {
-        ByteBuffer targetKey = null;
-        byte[] targetKeyByte = createTargetHashKey(target);
-        if (targetKeyByte != null) {
-            targetKey = ByteBuffer.wrap(targetKeyByte);
-        }
+        Long phoneNumber = getNumericPhoneNumber(target);
+        ByteBuffer targetKey = createTargetHashKey(target, phoneNumber);
 
         PhoneSmsType type = SMS_TYPES.get(typeCode, PhoneSmsType.UNKNOWN);
         int length = message.length();
@@ -280,12 +258,12 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
                         type,
                         length,
                         sendFromContact == null ? null : sendFromContact,
-                        isNonNumericTarget(target),
-                        isServiceTarget(target)
+                        phoneNumber == null,
+                        target.length()
                 )
         );
 
-        logger.info("SMS log: {}, {}, {}, {}, {}, {} chars, contact? {}, service? {}, non-numeric? {}", target, targetKey, type, eventTimestamp, timestamp, length, sendFromContact, isServiceTarget(target), isNonNumericTarget(target));
+        logger.info("SMS log: {}, {}, {}, {}, {}, {} chars, contact? {}, length? {}, non-numeric? {}", target, targetKey, type, eventTimestamp, timestamp, length, sendFromContact, target.length(), phoneNumberType);
     }
 
     private void sendNumberUnreadSms(int numberUnread) {
@@ -298,30 +276,16 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     }
 
     /**
-     * Returns true if target is non-numeric (e.g. 'Dropbox' or 'Google')
+     * Returns true if target is numeric (e.g. not 'Dropbox' or 'Google')
      * @param target sms/phone target
      * @return boolean
      */
-    private boolean isNonNumericTarget(String target) {
-        try {
-            Long targetLong = Long.parseLong(target);
-            if (targetLong < 0) {
-                return true;
-            }
-        } catch (NumberFormatException ex) {
-            return true;
+    private Long getNumericPhoneNumber(String target) {
+        if (IS_NUMBER.matcher(target).matches()) {
+            return Long.parseLong(target);
+        } else {
+            return null;
         }
-        return false;
-    }
-
-    /**
-     * Returns true if target contains 4 numbers (e.g. '1200' or '1330')
-     * TODO: also recognize 0900/0800 numbers
-     * @param target sms/phone target
-     * @return boolean
-     */
-    private boolean isServiceTarget(String target) {
-        return target.length() <= 4;
     }
 
     /**
@@ -330,47 +294,20 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
      * E.g.: +31232014111 becomes 232014111 and 0612345678 becomes 612345678 (before hashing)
      * If target is a name instead of a number (e.g. when sms), then hash this name
      * @param target String
-     * @return String
+     * @param phoneNumber phone number, null if it is not a number
+     * @return MAC-SHA256 encoding of target or null if the target is anonymous
      */
-    public byte[] createTargetHashKey(String target) {
+    private ByteBuffer createTargetHashKey(String target, Long phoneNumber) {
         // If non-numerical, then hash the target directly
-        try {
-            Long targetLong = Long.parseLong(target);
-
-            // Anonymous calls have target -1 or -2, do not hash them
-            if (targetLong < 0) {
-                return null;
-            }
-        } catch (NumberFormatException ex) {
-            return sha256.doFinal(target.getBytes());
-        }
-
-        int length = target.length();
-        if (length > 9) {
-            target = target.substring(length - 9, length);
-            // remove all non-numeric characters
-            target = target.replaceAll("[^0-9]", "");
-            // for example, a
-            if (target.isEmpty()) {
-                return null;
-            }
-        }
-
-        Serialization.intToBytes(Integer.valueOf(target), hashBuffer, 0);
-        return sha256.doFinal(hashBuffer);
-    }
-
-    private byte[] loadHashKey() throws IOException {
-        String b64Salt = preferences.getString(HASH_KEY, null);
-        if (b64Salt == null) {
-            byte[] byteSalt = new byte[16];
-            new SecureRandom().nextBytes(byteSalt);
-
-            b64Salt = Base64.encodeToString(byteSalt, Base64.NO_WRAP);
-            preferences.edit().putString(HASH_KEY, b64Salt).apply();
-            return byteSalt;
+        if (phoneNumber == null) {
+            return hashGenerator.createHashByteBuffer(target);
+        } else if (phoneNumber < 0) {
+            return null;
         } else {
-            return Base64.decode(b64Salt, Base64.NO_WRAP);
+            // remove international prefixes if present, since that would
+            // give inconsistent results -> 0612345678 vs +31612345678
+            int phoneNumberSuffix = (int) (phoneNumber % 1_000_000_000L);
+            return hashGenerator.createHashByteBuffer(phoneNumberSuffix);
         }
     }
 }
