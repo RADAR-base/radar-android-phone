@@ -35,6 +35,7 @@ import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
  */
 public class PhoneSensorService extends DeviceService {
     private String sourceId;
+    private static final PhoneSensorTopics PHONE_SENSOR_TOPICS = PhoneSensorTopics.getInstance();
 
     @Override
     protected DeviceManager createDeviceManager() {
@@ -48,18 +49,17 @@ public class PhoneSensorService extends DeviceService {
 
     @Override
     protected PhoneSensorTopics getTopics() {
-        return PhoneSensorTopics.getInstance();
+        return PHONE_SENSOR_TOPICS;
     }
 
     @Override
     protected List<AvroTopic<MeasurementKey, ? extends SpecificRecord>> getCachedTopics() {
         return Arrays.<AvroTopic<MeasurementKey, ? extends SpecificRecord>>asList(
-                 getTopics().getAccelerationTopic()
-                ,getTopics().getLightTopic()
-                ,getTopics().getUserInteractionTopic()
-                ,getTopics().getGyroscopeTopic()
-                ,getTopics().getMagneticFieldTopic()
-                ,getTopics().getStepCountTopic()
+                PHONE_SENSOR_TOPICS.getAccelerationTopic(),
+                PHONE_SENSOR_TOPICS.getLightTopic(),
+                PHONE_SENSOR_TOPICS.getGyroscopeTopic(),
+                PHONE_SENSOR_TOPICS.getMagneticFieldTopic(),
+                PHONE_SENSOR_TOPICS.getStepCountTopic()
         );
     }
 
