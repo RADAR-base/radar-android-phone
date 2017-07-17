@@ -25,6 +25,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.BatteryManager;
+import android.os.PowerManager;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
@@ -42,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Set;
 
+import static android.content.Context.POWER_SERVICE;
 import static android.os.BatteryManager.BATTERY_STATUS_CHARGING;
 import static android.os.BatteryManager.BATTERY_STATUS_DISCHARGING;
 import static android.os.BatteryManager.BATTERY_STATUS_FULL;
@@ -70,12 +72,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         SENSOR_NAMES.append(Sensor.TYPE_STEP_COUNTER, Sensor.STRING_TYPE_STEP_COUNTER);
     }
 
-    // Sensor Delay if different from default
-    private static final SparseIntArray SENSOR_DELAYS = new SparseIntArray(5);
-    static {
-        SENSOR_DELAYS.append(Sensor.TYPE_STEP_COUNTER, SensorManager.SENSOR_DELAY_UI);
-    }
-
     private static final int SENSOR_DELAY_DEFAULT = SensorManager.SENSOR_DELAY_NORMAL;
 
     private static final SparseArray<BatteryStatus> BATTERY_TYPES = new SparseArray<>(5);
@@ -93,9 +89,12 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     private final DataCache<MeasurementKey, PhoneGyroscope> gyroscopeTable;
     private final DataCache<MeasurementKey, PhoneMagneticField> magneticFieldTable;
     private final AvroTopic<MeasurementKey, PhoneBatteryLevel> batteryTopic;
+    private final SparseIntArray sensorDelays;
+    private final PhoneSensorService context;
 
     private SensorManager sensorManager;
     private int lastStepCount = -1;
+    private PowerManager.WakeLock wakeLock;
 
     public PhoneSensorManager(PhoneSensorService context, TableDataHandler dataHandler, String groupId, String sourceId) {
         super(context, new PhoneState(), dataHandler, groupId, sourceId);
@@ -105,8 +104,9 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         this.stepCountTable = dataHandler.getCache(topics.getStepCountTopic());
         this.gyroscopeTable = dataHandler.getCache(topics.getGyroscopeTopic());
         this.magneticFieldTable = dataHandler.getCache(topics.getMagneticFieldTopic());
-
+        this.sensorDelays = new SparseIntArray();
         this.batteryTopic = topics.getBatteryLevelTopic();
+        this.context = context;
 
         sensorManager = null;
 
@@ -117,16 +117,12 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     public void start(@NonNull final Set<String> acceptableIds) {
         sensorManager = (SensorManager) getService().getSystemService(Context.SENSOR_SERVICE);
 
-        // Register all sensors supplied in the constant
-        // At time of writing this is: Accelerometer, Light, Gyroscope, Magnetic Field and Step Counter
-        for (int sensorType : SENSOR_TYPES_TO_REGISTER) {
-            if (sensorManager.getDefaultSensor(sensorType) != null) {
-                Sensor sensor = sensorManager.getDefaultSensor(sensorType);
-                sensorManager.registerListener(this, sensor, SENSOR_DELAYS.get(sensorType, SENSOR_DELAY_DEFAULT));
-            } else {
-                logger.warn("The sensor '{}' could not be found", SENSOR_NAMES.get(sensorType,"unknown"));
-            }
-        }
+        PowerManager powerManager = (PowerManager) context.getSystemService(POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                "PhoneSensorManager");
+        wakeLock.acquire();
+
+        registerSensors();
 
         // Battery
         IntentFilter batteryFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
@@ -140,6 +136,23 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         }, batteryFilter));
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
+    }
+
+    /**
+     * Register all sensors supplied in SENSOR_TYPES_TO_REGISTER constant.
+     */
+
+     private void registerSensors() {
+        // At time of writing this is: Accelerometer, Light, Gyroscope, Magnetic Field and Step Counter
+        for (int sensorType : SENSOR_TYPES_TO_REGISTER) {
+            if (sensorManager.getDefaultSensor(sensorType) != null) {
+                Sensor sensor = sensorManager.getDefaultSensor(sensorType);
+                int delay = sensorDelays.get(sensorType, SENSOR_DELAY_DEFAULT);
+                sensorManager.registerListener(this, sensor, delay);
+            } else {
+                logger.warn("The sensor '{}' could not be found", SENSOR_NAMES.get(sensorType,"unknown"));
+            }
+        }
     }
 
     @Override
@@ -287,6 +300,16 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     @Override
     public void close() throws IOException {
         sensorManager.unregisterListener(this);
+        wakeLock.release();
         super.close();
+    }
+
+    public void setSensorDelays(SparseIntArray sensorDelays) {
+        this.sensorDelays.clear();
+        for (int i = 0; i < sensorDelays.size(); i++) {
+            this.sensorDelays.put(sensorDelays.keyAt(i), sensorDelays.valueAt(i));
+        }
+        sensorManager.unregisterListener(this);
+        registerSensors();
     }
 }

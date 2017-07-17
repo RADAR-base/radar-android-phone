@@ -16,6 +16,10 @@
 
 package org.radarcns.phone;
 
+import android.hardware.Sensor;
+import android.os.Bundle;
+import android.util.SparseIntArray;
+
 import org.apache.avro.specific.SpecificRecord;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
@@ -28,6 +32,11 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
+import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_ACCELERATION_INTERVAL;
+import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_GYROSCOPE_INTERVAL;
+import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_LIGHT_INTERVAL;
+import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL;
+import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_STEP_COUNT_INTERVAL;
 
 /**
  * A service that manages the phone sensor manager and a TableDataHandler to send store the data of
@@ -36,10 +45,13 @@ import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
 public class PhoneSensorService extends DeviceService {
     private String sourceId;
     private static final PhoneSensorTopics PHONE_SENSOR_TOPICS = PhoneSensorTopics.getInstance();
+    private SparseIntArray sensorDelays;
 
     @Override
     protected DeviceManager createDeviceManager() {
-        return new PhoneSensorManager(this, getDataHandler(), getUserId(), getSourceId());
+        PhoneSensorManager manager = new PhoneSensorManager(this, getDataHandler(), getUserId(), getSourceId());
+        configureManager(manager);
+        return manager;
     }
 
     @Override
@@ -61,6 +73,25 @@ public class PhoneSensorService extends DeviceService {
                 PHONE_SENSOR_TOPICS.getMagneticFieldTopic(),
                 PHONE_SENSOR_TOPICS.getStepCountTopic()
         );
+    }
+
+    private void configureManager(PhoneSensorManager manager) {
+        manager.setSensorDelays(sensorDelays);
+    }
+
+    @Override
+    protected void onInvocation(Bundle bundle) {
+        super.onInvocation(bundle);
+        sensorDelays.clear();
+        sensorDelays.put(Sensor.TYPE_ACCELEROMETER, bundle.getInt(PHONE_SENSOR_ACCELERATION_INTERVAL));
+        sensorDelays.put(Sensor.TYPE_MAGNETIC_FIELD, bundle.getInt(PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL));
+        sensorDelays.put(Sensor.TYPE_GYROSCOPE, bundle.getInt(PHONE_SENSOR_GYROSCOPE_INTERVAL));
+        sensorDelays.put(Sensor.TYPE_LIGHT, bundle.getInt(PHONE_SENSOR_LIGHT_INTERVAL));
+        sensorDelays.put(Sensor.TYPE_STEP_COUNTER, bundle.getInt(PHONE_SENSOR_STEP_COUNT_INTERVAL));
+        PhoneSensorManager manager = (PhoneSensorManager) getDeviceManager();
+        if (manager != null) {
+            configureManager(manager);
+        }
     }
 
     public String getSourceId() {
