@@ -48,9 +48,15 @@ public class PhoneSensorService extends DeviceService {
     private SparseIntArray sensorDelays;
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        sensorDelays = new SparseIntArray(5);
+    }
+
+    @Override
     protected DeviceManager createDeviceManager() {
         PhoneSensorManager manager = new PhoneSensorManager(this, getDataHandler(), getUserId(), getSourceId());
-        configureManager(manager);
+        manager.setSensorDelays(sensorDelays);
         return manager;
     }
 
@@ -75,14 +81,9 @@ public class PhoneSensorService extends DeviceService {
         );
     }
 
-    private void configureManager(PhoneSensorManager manager) {
-        manager.setSensorDelays(sensorDelays);
-    }
-
     @Override
     protected void onInvocation(Bundle bundle) {
         super.onInvocation(bundle);
-        sensorDelays.clear();
         sensorDelays.put(Sensor.TYPE_ACCELEROMETER, bundle.getInt(PHONE_SENSOR_ACCELERATION_INTERVAL));
         sensorDelays.put(Sensor.TYPE_MAGNETIC_FIELD, bundle.getInt(PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL));
         sensorDelays.put(Sensor.TYPE_GYROSCOPE, bundle.getInt(PHONE_SENSOR_GYROSCOPE_INTERVAL));
@@ -90,7 +91,7 @@ public class PhoneSensorService extends DeviceService {
         sensorDelays.put(Sensor.TYPE_STEP_COUNTER, bundle.getInt(PHONE_SENSOR_STEP_COUNT_INTERVAL));
         PhoneSensorManager manager = (PhoneSensorManager) getDeviceManager();
         if (manager != null) {
-            configureManager(manager);
+            manager.setSensorDelays(sensorDelays);
         }
     }
 
