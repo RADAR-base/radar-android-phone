@@ -90,9 +90,8 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     private final DataCache<MeasurementKey, PhoneMagneticField> magneticFieldTable;
     private final AvroTopic<MeasurementKey, PhoneBatteryLevel> batteryTopic;
     private final SparseIntArray sensorDelays;
-    private final PhoneSensorService context;
 
-    private SensorManager sensorManager;
+    private final SensorManager sensorManager;
     private int lastStepCount = -1;
     private PowerManager.WakeLock wakeLock;
 
@@ -106,18 +105,15 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         this.magneticFieldTable = dataHandler.getCache(topics.getMagneticFieldTopic());
         this.sensorDelays = new SparseIntArray();
         this.batteryTopic = topics.getBatteryLevelTopic();
-        this.context = context;
 
-        sensorManager = null;
+        sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
 
         setName(android.os.Build.MODEL);
     }
 
     @Override
     public void start(@NonNull final Set<String> acceptableIds) {
-        sensorManager = (SensorManager) getService().getSystemService(Context.SENSOR_SERVICE);
-
-        PowerManager powerManager = (PowerManager) context.getSystemService(POWER_SERVICE);
+        PowerManager powerManager = (PowerManager) getService().getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                 "PhoneSensorManager");
         wakeLock.acquire();
@@ -309,7 +305,9 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         for (int i = 0; i < sensorDelays.size(); i++) {
             this.sensorDelays.put(sensorDelays.keyAt(i), sensorDelays.valueAt(i));
         }
-        sensorManager.unregisterListener(this);
-        registerSensors();
+        if (getState().getStatus() == DeviceStatusListener.Status.CONNECTED) {
+            sensorManager.unregisterListener(this);
+            registerSensors();
+        }
     }
 }
