@@ -263,7 +263,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
                 )
         );
 
-        logger.info("SMS log: {}, {}, {}, {}, {}, {} chars, contact? {}, length? {}, non-numeric? {}", target, targetKey, type, eventTimestamp, timestamp, length, sendFromContact, target.length(), phoneNumberType);
+        logger.info("SMS log: {}, {}, {}, {}, {}, {} chars, contact? {}, length? {}", target, targetKey, type, eventTimestamp, timestamp, length, sendFromContact, target.length());
     }
 
     private void sendNumberUnreadSms(int numberUnread) {

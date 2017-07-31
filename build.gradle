@@ -72,8 +72,8 @@ repositories {
 }
 
 dependencies {
-    compile 'org.radarcns:radar-commons-android:0.2.1'
-    compile 'org.radarcns:radar-schemas-commons:0.1'
+    compile 'org.radarcns:radar-commons-android:0.3-SNAPSHOT@aar'
+    compile 'org.radarcns:radar-schemas-commons:0.2-alpha.1'
 
     // tmp
     compile 'com.squareup.okhttp3:okhttp:3.6.0'
