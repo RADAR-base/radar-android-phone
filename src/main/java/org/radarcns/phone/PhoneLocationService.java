@@ -24,12 +24,7 @@ import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
 import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
-import static org.radarcns.phone.PhoneLocationProvider.PHONE_LOCATION_BATTERY_LEVEL_MINIMUM;
-import static org.radarcns.phone.PhoneLocationProvider.PHONE_LOCATION_BATTERY_LEVEL_REDUCED;
-import static org.radarcns.phone.PhoneLocationProvider.PHONE_LOCATION_GPS_INTERVAL;
-import static org.radarcns.phone.PhoneLocationProvider.PHONE_LOCATION_GPS_INTERVAL_REDUCED;
-import static org.radarcns.phone.PhoneLocationProvider.PHONE_LOCATION_NETWORK_INTERVAL;
-import static org.radarcns.phone.PhoneLocationProvider.PHONE_LOCATION_NETWORK_INTERVAL_REDUCED;
+import static org.radarcns.phone.PhoneLocationProvider.*;
 
 public class PhoneLocationService extends DeviceService {
     private String sourceId;
@@ -42,7 +37,10 @@ public class PhoneLocationService extends DeviceService {
 
     @Override
     protected DeviceManager createDeviceManager() {
-        PhoneLocationManager manager = new PhoneLocationManager(this, getDataHandler(), getUserId(), getSourceId());
+        if (sourceId == null) {
+            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
+        }
+        PhoneLocationManager manager = new PhoneLocationManager(this, getDataHandler(), getUserId(), sourceId);
         configureManager(manager);
         return manager;
     }
@@ -57,13 +55,6 @@ public class PhoneLocationService extends DeviceService {
         return PhoneLocationTopics.getInstance();
     }
 
-    public String getSourceId() {
-        if (sourceId == null) {
-            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
-        }
-        return sourceId;
-    }
-
     private void configureManager(PhoneLocationManager manager) {
         manager.setBatteryLevels(batteryLevelMinimum, batteryLevelReduced);
         manager.setIntervals(gpsInterval, gpsIntervalReduced, networkInterval, networkIntervalReduced);
@@ -72,12 +63,12 @@ public class PhoneLocationService extends DeviceService {
     @Override
     protected void onInvocation(Bundle bundle) {
         super.onInvocation(bundle);
-        gpsInterval = bundle.getInt(PHONE_LOCATION_GPS_INTERVAL);
-        gpsIntervalReduced = bundle.getInt(PHONE_LOCATION_GPS_INTERVAL_REDUCED);
-        networkInterval = bundle.getInt(PHONE_LOCATION_NETWORK_INTERVAL);
-        networkIntervalReduced = bundle.getInt(PHONE_LOCATION_NETWORK_INTERVAL_REDUCED);
-        batteryLevelMinimum = bundle.getInt(PHONE_LOCATION_BATTERY_LEVEL_MINIMUM);
-        batteryLevelReduced = bundle.getFloat(PHONE_LOCATION_BATTERY_LEVEL_REDUCED);
+        gpsInterval = bundle.getInt(INTERVAL_GPS_KEY);
+        gpsIntervalReduced = bundle.getInt(INTERVAL_GPS_REDUCED_KEY);
+        networkInterval = bundle.getInt(INTERVAL_NETWORK_KEY);
+        networkIntervalReduced = bundle.getInt(INTERVAL_NETWORK_REDUCED_KEY);
+        batteryLevelMinimum = bundle.getInt(MINIMUM_BATTERY_LEVEL_KEY);
+        batteryLevelReduced = bundle.getFloat(REDUCED_BATTERY_LEVEL_KEY);
         DeviceManager manager = getDeviceManager();
         if (manager != null) {
             configureManager((PhoneLocationManager) getDeviceManager());

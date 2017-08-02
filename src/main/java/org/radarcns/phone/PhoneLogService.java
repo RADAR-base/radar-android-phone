@@ -49,6 +49,7 @@ public class PhoneLogService extends DeviceService {
 
     @Override
     protected void onInvocation(Bundle bundle) {
+        super.onInvocation(bundle);
         logInterval = bundle.getLong(CALL_SMS_LOG_INTERVAL_KEY);
         PhoneLogManager deviceManager = (PhoneLogManager) getDeviceManager();
         if (deviceManager != null) {
