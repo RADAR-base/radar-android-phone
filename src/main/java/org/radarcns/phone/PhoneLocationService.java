@@ -71,6 +71,7 @@ public class PhoneLocationService extends DeviceService {
 
     @Override
     protected void onInvocation(Bundle bundle) {
+        super.onInvocation(bundle);
         gpsInterval = bundle.getInt(PHONE_LOCATION_GPS_INTERVAL);
         gpsIntervalReduced = bundle.getInt(PHONE_LOCATION_GPS_INTERVAL_REDUCED);
         networkInterval = bundle.getInt(PHONE_LOCATION_NETWORK_INTERVAL);

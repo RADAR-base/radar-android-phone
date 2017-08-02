@@ -16,27 +16,25 @@
 
 package org.radarcns.phone;
 
-import android.os.Parcelable;
-
+import android.os.Build;
+import android.os.Bundle;
+import org.radarcns.android.RadarConfiguration;
+import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-import static android.Manifest.permission.INTERNET;
-import static android.Manifest.permission.PACKAGE_USAGE_STATS;
-import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-//import static android.Manifest.permission.PACKAGE_USAGE_STATS;
+public class PhoneUsageProvider extends DeviceServiceProvider<BaseDeviceState> {
+    private static final String PHONE_PREFIX = "org.radarcns.phone.";
+    private static final String PHONE_USAGE_INTERVAL = "phone_usage_interval_seconds";
+    private static final long USAGE_EVENT_PERIOD_DEFAULT = 60*60; // one hour
 
-public class PhoneUsageProvider extends DeviceServiceProvider<PhoneState> {
+    public static final String PHONE_USAGE_INTERVAL_KEY = PHONE_PREFIX + PHONE_USAGE_INTERVAL;
+
     @Override
     public Class<?> getServiceClass() {
         return PhoneUsageService.class;
-    }
-
-    @Override
-    public Parcelable.Creator<PhoneState> getStateCreator() {
-        return PhoneState.CREATOR;
     }
 
     @Override
@@ -46,11 +44,23 @@ public class PhoneUsageProvider extends DeviceServiceProvider<PhoneState> {
 
     @Override
     public List<String> needsPermissions() {
-        //Check if permission enabled
-//        if (appUsages.getUsageStatsList().isEmpty()){
-//            Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
-//            startActivity(intent);
-//        }
-        return Arrays.asList(PACKAGE_USAGE_STATS);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return Collections.singletonList(android.Manifest.permission.PACKAGE_USAGE_STATS);
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    protected void configure(Bundle bundle) {
+        super.configure(bundle);
+        RadarConfiguration config = getConfig();
+        bundle.putLong(PHONE_USAGE_INTERVAL_KEY, config.getLong(
+                PHONE_USAGE_INTERVAL, USAGE_EVENT_PERIOD_DEFAULT));
+    }
+
+    @Override
+    public boolean isDisplayable() {
+        return false;
     }
 }

@@ -16,19 +16,25 @@
 
 package org.radarcns.phone;
 
+import android.os.Bundle;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
 import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
+import static org.radarcns.phone.PhoneLogProvider.CALL_SMS_LOG_INTERVAL_KEY;
 
 public class PhoneLogService extends DeviceService {
     private String sourceId;
+    private long logInterval;
 
     @Override
     protected DeviceManager createDeviceManager() {
-        return new PhoneLogManager(this, getDataHandler(), getUserId(), getSourceId());
+        if (sourceId == null) {
+            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
+        }
+        return new PhoneLogManager(this, getDataHandler(), getUserId(), sourceId, logInterval);
     }
 
     @Override
@@ -41,10 +47,12 @@ public class PhoneLogService extends DeviceService {
         return PhoneLogTopics.getInstance();
     }
 
-    public String getSourceId() {
-        if (sourceId == null) {
-            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
+    @Override
+    protected void onInvocation(Bundle bundle) {
+        logInterval = bundle.getLong(CALL_SMS_LOG_INTERVAL_KEY);
+        PhoneLogManager deviceManager = (PhoneLogManager) getDeviceManager();
+        if (deviceManager != null) {
+            deviceManager.setCallAndSmsLogUpdateRate(logInterval);
         }
-        return sourceId;
     }
 }

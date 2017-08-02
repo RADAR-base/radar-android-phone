@@ -65,8 +65,6 @@ public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState
         super.configure(bundle);
         RadarConfiguration config = getConfig();
 
-
-
         bundle.putInt(RadarConfiguration.RADAR_PREFIX + PHONE_LOCATION_GPS_INTERVAL, config.getInt(PHONE_LOCATION_GPS_INTERVAL, LOCATION_GPS_INTERVAL_DEFAULT));
         bundle.putInt(RadarConfiguration.RADAR_PREFIX + PHONE_LOCATION_GPS_INTERVAL_REDUCED, config.getInt(PHONE_LOCATION_GPS_INTERVAL_REDUCED, LOCATION_GPS_INTERVAL_REDUCED_DEFAULT));
         bundle.putInt(RadarConfiguration.RADAR_PREFIX + PHONE_LOCATION_NETWORK_INTERVAL, config.getInt(PHONE_LOCATION_NETWORK_INTERVAL, LOCATION_NETWORK_INTERVAL_DEFAULT));

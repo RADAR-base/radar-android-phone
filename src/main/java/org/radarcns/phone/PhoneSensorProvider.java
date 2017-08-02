@@ -40,11 +40,6 @@ public class PhoneSensorProvider extends DeviceServiceProvider<PhoneState> {
     }
 
     @Override
-    public Parcelable.Creator<PhoneState> getStateCreator() {
-        return PhoneState.CREATOR;
-    }
-
-    @Override
     public String getDisplayName() {
         return getActivity().getString(R.string.phoneServiceDisplayName);
     }
