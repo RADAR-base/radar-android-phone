@@ -65,7 +65,6 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
 
     private final UsageStatsManager usageStatsManager;
     private final SharedPreferences preferences;
-    private final long usageEventInterval;
     private final OfflineProcessor phoneUsageProcessor;
 
     private String lastPackageName;
@@ -80,7 +79,6 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         PhoneUsageTopics topics = PhoneUsageTopics.getInstance();
         this.usageEventTable = dataHandler.getCache(topics.getUsageEventTopic());
         this.userInteractionTable = dataHandler.getCache(topics.getUserInteractionTopic());
-        this.usageEventInterval = usageEventInterval;
 
         this.usageStatsManager = (UsageStatsManager) context.getSystemService("usagestats");
         this.preferences = context.getSharedPreferences(PhoneUsageService.class.getName(), Context.MODE_PRIVATE);
@@ -99,7 +97,8 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
             }
         };
 
-        phoneUsageProcessor = new OfflineProcessor(context, this, USAGE_EVENT_REQUEST_CODE, ACTION_UPDATE_EVENTS);
+        phoneUsageProcessor = new OfflineProcessor(context, this, USAGE_EVENT_REQUEST_CODE,
+                ACTION_UPDATE_EVENTS, usageEventInterval);
 
         setName(android.os.Build.MODEL);
         updateStatus(DeviceStatusListener.Status.READY);
@@ -108,7 +107,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     @Override
     public void start(@NonNull final Set<String> acceptableIds) {
         // Start query of usage events
-        phoneUsageProcessor.start(usageEventInterval);
+        phoneUsageProcessor.start();
 
         IntentFilter phoneStateFilter = new IntentFilter();
         phoneStateFilter.addAction(Intent.ACTION_USER_PRESENT); // unlock

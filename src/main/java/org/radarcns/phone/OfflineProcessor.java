@@ -35,6 +35,7 @@ public class OfflineProcessor implements Closeable {
 
     private boolean doStop;
     private Thread processorThread;
+    private long interval;
 
     /**
      * Creates a processor that will register a BroadcastReceiver and alarm with the given context.
@@ -43,7 +44,8 @@ public class OfflineProcessor implements Closeable {
      * @param requestCode a code unique to the application, used to identify the current processor
      * @param requestName a name unique to the application, used to identify the current processor
      */
-    public OfflineProcessor(Context context, final Runnable runnable, int requestCode, String requestName) {
+    public OfflineProcessor(Context context, final Runnable runnable, int requestCode, String
+            requestName, long interval) {
         this.context = context;
         this.threadFactory = new AndroidThreadFactory(requestName, THREAD_PRIORITY_BACKGROUND);
         this.doStop = false;
@@ -65,16 +67,25 @@ public class OfflineProcessor implements Closeable {
                 }
             }
         };
+        this.interval = interval;
     }
 
-    /** Start processing at the given interval. */
-    public void start(long interval) {
-        setInterval(interval);
+    /** Start processing. */
+    public void start() {
+        schedule();
         context.registerReceiver(this.receiver, new IntentFilter(requestName));
     }
 
     /** Change the processing interval to the given value. */
     public final void setInterval(long interval) {
+        if (this.interval == interval) {
+            return;
+        }
+        this.interval = interval;
+        schedule();
+    }
+
+    private void schedule() {
         alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime(),
                 interval * 1000, pendingIntent);
     }

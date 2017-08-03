@@ -300,12 +300,23 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
     }
 
     public synchronized void setBatteryLevels(float batteryLevelMinimum, float batteryLevelReduced) {
+        if (this.batteryLevelMinimum == batteryLevelMinimum
+                && this.batteryLevelReduced == batteryLevelReduced) {
+            return;
+        }
         this.batteryLevelMinimum = batteryLevelMinimum;
         this.batteryLevelReduced = batteryLevelReduced;
         this.onBatteryLevelChanged(batteryLevelReceiver.getLevel(), batteryLevelReceiver.isPlugged());
     }
 
     public synchronized void setIntervals(int gpsInterval, int gpsIntervalReduced, int networkInterval, int networkIntervalReduced) {
+        if (this.gpsInterval == gpsInterval
+                && this.gpsIntervalReduced == gpsIntervalReduced
+                && this.networkInterval == networkInterval
+                && this.networkIntervalReduced == networkIntervalReduced) {
+            return;
+        }
+
         this.gpsInterval = gpsInterval;
         this.gpsIntervalReduced = gpsIntervalReduced;
         this.networkInterval = networkInterval;

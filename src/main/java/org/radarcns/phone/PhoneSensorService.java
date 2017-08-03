@@ -55,13 +55,17 @@ public class PhoneSensorService extends DeviceService {
 
     @Override
     protected DeviceManager createDeviceManager() {
-        PhoneSensorManager manager = new PhoneSensorManager(this, getDataHandler(), getUserId(), getSourceId());
+        if (sourceId == null) {
+            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
+        }
+        PhoneSensorManager manager = new PhoneSensorManager(this, getDataHandler(),
+                getUserId(), sourceId);
         manager.setSensorDelays(sensorDelays);
         return manager;
     }
 
     @Override
-    protected BaseDeviceState getDefaultState() {
+    protected PhoneState getDefaultState() {
         return new PhoneState();
     }
 
@@ -93,12 +97,5 @@ public class PhoneSensorService extends DeviceService {
         if (manager != null) {
             manager.setSensorDelays(sensorDelays);
         }
-    }
-
-    public String getSourceId() {
-        if (sourceId == null) {
-            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
-        }
-        return sourceId;
     }
 }

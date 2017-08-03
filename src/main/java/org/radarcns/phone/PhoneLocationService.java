@@ -67,7 +67,7 @@ public class PhoneLocationService extends DeviceService {
         gpsIntervalReduced = bundle.getInt(INTERVAL_GPS_REDUCED_KEY);
         networkInterval = bundle.getInt(INTERVAL_NETWORK_KEY);
         networkIntervalReduced = bundle.getInt(INTERVAL_NETWORK_REDUCED_KEY);
-        batteryLevelMinimum = bundle.getInt(MINIMUM_BATTERY_LEVEL_KEY);
+        batteryLevelMinimum = bundle.getFloat(MINIMUM_BATTERY_LEVEL_KEY);
         batteryLevelReduced = bundle.getFloat(REDUCED_BATTERY_LEVEL_KEY);
         DeviceManager manager = getDeviceManager();
         if (manager != null) {

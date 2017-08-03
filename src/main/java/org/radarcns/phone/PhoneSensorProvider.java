@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class PhoneSensorProvider extends DeviceServiceProvider<PhoneState> {
-    private static final int PHONE_SENSOR_INTERVAL_DEFAULT = 200;
+    static final int PHONE_SENSOR_INTERVAL_DEFAULT = 200;
     static final String PHONE_SENSOR_INTERVAL = "phone.sensor.default.interval";
     static final String PHONE_SENSOR_GYROSCOPE_INTERVAL = "phone.sensor.gyroscope.interval";
     static final String PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL = "phone.sensor.magneticfield.interval";

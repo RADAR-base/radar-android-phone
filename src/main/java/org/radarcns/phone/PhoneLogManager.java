@@ -72,7 +72,6 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     private final DataCache<MeasurementKey, PhoneSmsUnread> smsUnreadTable;
     private final HashGenerator hashGenerator;
     private final SharedPreferences preferences;
-    private final long logInterval;
     private final ContentResolver db;
     private final OfflineProcessor logProcessor;
     private long lastSmsTimestamp;
@@ -86,20 +85,20 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         smsUnreadTable = getCache(phoneLogService.getTopics().getSmsUnreadTopic());
 
         preferences = phoneLogService.getSharedPreferences(PhoneLogService.class.getName(), Context.MODE_PRIVATE);
-        this.logInterval = logInterval;
         lastCallTimestamp = preferences.getLong(LAST_CALL_KEY, System.currentTimeMillis());
         lastSmsTimestamp = preferences.getLong(LAST_SMS_KEY, System.currentTimeMillis());
         db = getService().getContentResolver();
 
         hashGenerator = new HashGenerator(preferences);
-        logProcessor = new OfflineProcessor(phoneLogService, this, REQUEST_CODE_PENDING_INTENT, ACTIVITY_LAUNCH_WAKE);
+        logProcessor = new OfflineProcessor(phoneLogService, this, REQUEST_CODE_PENDING_INTENT,
+                ACTIVITY_LAUNCH_WAKE, logInterval);
 
         setName(android.os.Build.MODEL);
     }
 
     public void start(@NonNull Set<String> acceptableIds) {
         // Calls and sms, in and outgoing and number of unread sms
-        logProcessor.start(logInterval);
+        logProcessor.start();
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
     }
