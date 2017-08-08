@@ -102,7 +102,8 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
             altitudeReference = Double.NaN;
         }
 
-        setName(android.os.Build.MODEL);
+        setName(String.format(context.getString(R.string.location_manager_name),
+                android.os.Build.MODEL));
         updateStatus(DeviceStatusListener.Status.READY);
     }
 

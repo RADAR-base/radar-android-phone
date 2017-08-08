@@ -93,7 +93,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         logProcessor = new OfflineProcessor(phoneLogService, this, REQUEST_CODE_PENDING_INTENT,
                 ACTIVITY_LAUNCH_WAKE, logInterval);
 
-        setName(android.os.Build.MODEL);
+        setName(String.format(phoneLogService.getString(R.string.call_log_service_name), android.os.Build.MODEL));
     }
 
     public void start(@NonNull Set<String> acceptableIds) {
