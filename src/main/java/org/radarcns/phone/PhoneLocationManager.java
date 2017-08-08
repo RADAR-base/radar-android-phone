@@ -78,6 +78,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
     private int gpsIntervalReduced;
     private int networkInterval;
     private int networkIntervalReduced;
+    private boolean isStarted;
 
     public PhoneLocationManager(PhoneLocationService context, TableDataHandler dataHandler, String groupId, String sourceId) {
         super(context, new BaseDeviceState(), dataHandler, groupId, sourceId);
@@ -102,6 +103,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
             altitudeReference = Double.NaN;
         }
 
+        isStarted = false;
         setName(String.format(context.getString(R.string.location_manager_name),
                 android.os.Build.MODEL));
         updateStatus(DeviceStatusListener.Status.READY);
@@ -119,6 +121,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
             public void run() {
                 batteryLevelReceiver.register();
                 updateStatus(DeviceStatusListener.Status.CONNECTED);
+                isStarted = true;
             }
         });
     }
@@ -180,6 +183,10 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         handler.post(new Runnable() {
              @Override
              public void run() {
+                 if (!isStarted) {
+                     return;
+                 }
+
                  // Remove updates, if any
                  locationManager.removeUpdates(PhoneLocationManager.this);
 
