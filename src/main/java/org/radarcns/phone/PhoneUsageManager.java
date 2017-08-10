@@ -98,7 +98,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         };
 
         phoneUsageProcessor = new OfflineProcessor(context, this, USAGE_EVENT_REQUEST_CODE,
-                ACTION_UPDATE_EVENTS, usageEventInterval);
+                ACTION_UPDATE_EVENTS, usageEventInterval, false);
 
         setName(String.format(context.getString(R.string.app_usage_service_name), android.os.Build.MODEL));
         updateStatus(DeviceStatusListener.Status.READY);

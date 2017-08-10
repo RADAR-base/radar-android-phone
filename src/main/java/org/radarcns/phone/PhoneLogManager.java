@@ -91,7 +91,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
 
         hashGenerator = new HashGenerator(preferences);
         logProcessor = new OfflineProcessor(phoneLogService, this, REQUEST_CODE_PENDING_INTENT,
-                ACTIVITY_LAUNCH_WAKE, logInterval);
+                ACTIVITY_LAUNCH_WAKE, logInterval, false);
 
         setName(String.format(phoneLogService.getString(R.string.call_log_service_name), android.os.Build.MODEL));
     }

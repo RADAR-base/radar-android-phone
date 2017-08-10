@@ -6,36 +6,42 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.PowerManager;
+import android.os.Process;
 import android.os.SystemClock;
-import org.radarcns.android.util.AndroidThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static android.content.Context.ALARM_SERVICE;
+import static android.content.Context.POWER_SERVICE;
 import static android.os.Process.THREAD_PRIORITY_BACKGROUND;
 
 /**
  * Process events based on a alarm.
  *
- * The events will be processed in a background Thread and will not wake the device. During processing in the provided
- * Runnable, check that {@link #isDone()} remains {@code false}. Once it turns true, the Runnable should stop
- * processing.
+ * The events will be processed in a background Thread. During processing in the provided Runnable,
+ * check that {@link #isDone()} remains {@code false}. Once it turns true, the Runnable should stop
+ * processing. If wake is set to true, {@link android.Manifest.permission#WAKE_LOCK} should be
+ * acquired in the Manifest.
  */
 public class OfflineProcessor implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(OfflineProcessor.class);
 
     private final Context context;
-    private final AndroidThreadFactory threadFactory;
     private final BroadcastReceiver receiver;
     private final String requestName;
     private final PendingIntent pendingIntent;
     private final AlarmManager alarmManager;
+    private final boolean keepAwake;
+    private final Runnable runnable;
 
     private boolean doStop;
     private Thread processorThread;
     private long interval;
+    private final AtomicBoolean isStarted;
 
     /**
      * Creates a processor that will register a BroadcastReceiver and alarm with the given context.
@@ -43,50 +49,89 @@ public class OfflineProcessor implements Closeable {
      * @param runnable code to run in offline mode
      * @param requestCode a code unique to the application, used to identify the current processor
      * @param requestName a name unique to the application, used to identify the current processor
+     * @param wake wake the device for processing.
      */
-    public OfflineProcessor(Context context, final Runnable runnable, int requestCode, String
-            requestName, long interval) {
+    public OfflineProcessor(Context context, Runnable runnable, int requestCode, final String
+            requestName, long interval, final boolean wake) {
         this.context = context;
-        this.threadFactory = new AndroidThreadFactory(requestName, THREAD_PRIORITY_BACKGROUND);
         this.doStop = false;
         this.requestName = requestName;
         this.alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
+        this.keepAwake = wake;
+        this.runnable = runnable;
 
         Intent intent = new Intent(requestName);
-        pendingIntent = PendingIntent.getBroadcast(context, requestCode, intent, 0);
+        pendingIntent = PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_CANCEL_CURRENT);
 
         this.receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                synchronized (OfflineProcessor.this) {
-                    if (doStop) {
-                        return;
-                    }
-                    processorThread = threadFactory.newThread(runnable);
-                    processorThread.start();
-                }
+                processBroadcast(context);
             }
         };
         this.interval = interval;
+        isStarted = new AtomicBoolean(false);
     }
 
     /** Start processing. */
     public void start() {
-        schedule();
         context.registerReceiver(this.receiver, new IntentFilter(requestName));
+        schedule();
+        isStarted.set(true);
     }
 
-    /** Change the processing interval to the given value. */
+    /** Start up a new thread to process. */
+    private synchronized void processBroadcast(Context context) {
+        if (doStop) {
+            return;
+        }
+        final PowerManager.WakeLock wakeLock;
+        if (keepAwake) {
+            wakeLock = acquireWakeLock(context, requestName);
+        } else {
+            wakeLock = null;
+        }
+        processorThread = new Thread(requestName) {
+            @Override
+            public void run() {
+                try {
+                    Process.setThreadPriority(THREAD_PRIORITY_BACKGROUND);
+                    runnable.run();
+                } finally {
+                    if (wakeLock != null) {
+                        wakeLock.release();
+                    }
+                }
+            }
+        };
+        processorThread.start();
+    }
+
+    private static PowerManager.WakeLock acquireWakeLock(Context context, String requestName) {
+        PowerManager powerManager = (PowerManager) context.getSystemService(POWER_SERVICE);
+        PowerManager.WakeLock wakeLock = powerManager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK, requestName);
+        wakeLock.acquire();
+        return wakeLock;
+    }
+
+    /**
+     * Change the processing interval to the given value.
+     * @param interval time between processing in seconds.
+     */
     public final void setInterval(long interval) {
         if (this.interval == interval) {
             return;
         }
         this.interval = interval;
-        schedule();
+        if (isStarted.get()) {
+            schedule();
+        }
     }
 
     private void schedule() {
-        alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime(),
+        int type = keepAwake ? AlarmManager.ELAPSED_REALTIME_WAKEUP : AlarmManager.ELAPSED_REALTIME;
+        alarmManager.setInexactRepeating(type, SystemClock.elapsedRealtime(),
                 interval * 1000, pendingIntent);
     }
 
