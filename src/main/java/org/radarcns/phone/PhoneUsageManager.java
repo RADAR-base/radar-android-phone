@@ -43,7 +43,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         EVENT_TYPES.append(UsageEvents.Event.MOVE_TO_FOREGROUND, UsageEventType.FOREGROUND);
         EVENT_TYPES.append(UsageEvents.Event.MOVE_TO_BACKGROUND, UsageEventType.BACKGROUND);
         EVENT_TYPES.append(UsageEvents.Event.CONFIGURATION_CHANGE, UsageEventType.CONFIG);
-        EVENT_TYPES.append(UsageEvents.Event.NONE, UsageEventType.NONE);
+        EVENT_TYPES.append(UsageEvents.Event.NONE, UsageEventType.UNKNOWN);
         if (android.os.Build.VERSION.SDK_INT >= 25) {
             EVENT_TYPES.append(UsageEvents.Event.SHORTCUT_INVOCATION, UsageEventType.SHORTCUT);
             EVENT_TYPES.append(UsageEvents.Event.USER_INTERACTION, UsageEventType.INTERACTION);
@@ -205,7 +205,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
 
     private void sendLastEvent() {
         // Event type conversion to Schema defined
-        UsageEventType usageEventType = EVENT_TYPES.get(lastEventType, UsageEventType.NONE);
+        UsageEventType usageEventType = EVENT_TYPES.get(lastEventType, UsageEventType.UNKNOWN);
 
         double time = lastTimestamp / 1000d;
         double timeReceived = System.currentTimeMillis() / 1000d;
