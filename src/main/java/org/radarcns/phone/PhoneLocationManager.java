@@ -27,6 +27,7 @@ import android.os.HandlerThread;
 import android.os.Process;
 import android.support.annotation.NonNull;
 
+import android.support.annotation.Nullable;
 import org.radarcns.android.data.DataCache;
 import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
@@ -131,10 +132,6 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
             return;
         }
 
-        double latitude;
-        double longitude;
-        float altitude;
-
         if (latitudeReference == null) {
             latitudeReference = BigDecimal.valueOf(location.getLatitude());
             longitudeReference = BigDecimal.valueOf(location.getLongitude());
@@ -146,11 +143,6 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
                     .apply();
         }
 
-        // Coordinates in degrees from a new (random) reference point
-        latitude = getRelativeLatitude(location.getLatitude());
-        longitude = getRelativeLongitude(location.getLongitude());
-        altitude = location.hasAltitude() ? getRelativeAltitude(location.getAltitude()) : Float.NaN;
-
         double eventTimestamp = location.getTime() / 1000d;
         double timestamp = System.currentTimeMillis() / 1000d;
 
@@ -159,9 +151,13 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
             provider = LocationProvider.OTHER;
         }
 
-        float accuracy = location.hasAccuracy() ? location.getAccuracy() : Float.NaN;
-        float speed = location.hasSpeed() ? location.getSpeed() : Float.NaN;
-        float bearing = location.hasBearing() ? location.getBearing() : Float.NaN;
+        // Coordinates in degrees from a new (random) reference point
+        Double latitude = normalizeFloating(getRelativeLatitude(location.getLatitude()));
+        Double longitude = normalizeFloating(getRelativeLongitude(location.getLongitude()));
+        Float altitude = normalizeFloating(location.hasAltitude() ? getRelativeAltitude(location.getAltitude()) : Float.NaN);
+        Float accuracy = normalizeFloating(location.hasAccuracy() ? location.getAccuracy() : Float.NaN);
+        Float speed = normalizeFloating(location.hasSpeed() ? location.getSpeed() : Float.NaN);
+        Float bearing = normalizeFloating(location.hasBearing() ? location.getBearing() : Float.NaN);
 
         PhoneRelativeLocation value = new PhoneRelativeLocation(
                 eventTimestamp, timestamp, provider,
@@ -208,6 +204,34 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
                  }
              }
          });
+    }
+
+    /** Replace special float values with regular numbers. */
+    @Nullable
+    private static Double normalizeFloating(double orig) {
+        if (Double.isNaN(orig)) {
+            return null;
+        } else if (orig == Double.NEGATIVE_INFINITY) {
+            return -1e308;
+        } else if (orig == Double.POSITIVE_INFINITY) {
+            return 1e308;
+        } else {
+            return orig;
+        }
+    }
+
+    /** Replace special float values with regular numbers. */
+    @Nullable
+    private static Float normalizeFloating(float orig) {
+        if (Float.isNaN(orig)) {
+            return null;
+        } else if (orig == Float.NEGATIVE_INFINITY) {
+            return -3e38f;
+        } else if (orig == Float.POSITIVE_INFINITY) {
+            return 3e38f;
+        } else {
+            return orig;
+        }
     }
 
     private double getRelativeLatitude(double absoluteLatitude) {
