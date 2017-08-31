@@ -27,6 +27,7 @@ import android.os.HandlerThread;
 import android.os.Process;
 import android.support.annotation.NonNull;
 
+import android.support.annotation.Nullable;
 import org.radarcns.android.data.DataCache;
 import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
@@ -46,21 +47,14 @@ import java.util.Set;
 class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, BaseDeviceState> implements LocationListener, BatteryLevelReceiver.BatteryLevelListener {
     private static final Logger logger = LoggerFactory.getLogger(PhoneLocationManager.class);
 
-    private enum Frequency {
-        OFF, REDUCED, NORMAL
-    }
+    private static final int FREQUENCY_OFF = 1;
+    private static final int FREQUENCY_REDUCED = 2;
+    private static final int FREQUENCY_NORMAL = 3;
 
     // storage with keys
     private static final String LATITUDE_REFERENCE = "latitude.reference";
     private static final String LONGITUDE_REFERENCE = "longitude.reference";
     private static final String ALTITUDE_REFERENCE = "altitude.reference";
-
-    // update intervals
-    private static final long LOCATION_GPS_INTERVAL_DEFAULT = 60*60; // seconds
-    private static final long LOCATION_NETWORK_INTERVAL_DEFAULT = 10*60; // seconds
-
-    private static final float MINIMUM_BATTERY_LEVEL = 0.15f;
-    private static final float REDUCED_BATTERY_LEVEL = 0.3f;
 
     private static final Map<String, LocationProvider> PROVIDER_TYPES = new HashMap<>();
 
@@ -78,7 +72,14 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
     private double altitudeReference;
     private final HandlerThread handlerThread;
     private Handler handler;
-    private Frequency frequency;
+    private int frequency;
+    private float batteryLevelMinimum;
+    private float batteryLevelReduced;
+    private int gpsInterval;
+    private int gpsIntervalReduced;
+    private int networkInterval;
+    private int networkIntervalReduced;
+    private boolean isStarted;
 
     public PhoneLocationManager(PhoneLocationService context, TableDataHandler dataHandler, String groupId, String sourceId) {
         super(context, new BaseDeviceState(), dataHandler, groupId, sourceId);
@@ -88,7 +89,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         this.handlerThread = new HandlerThread("PhoneLocation", Process.THREAD_PRIORITY_BACKGROUND);
 
         batteryLevelReceiver = new BatteryLevelReceiver(context, this);
-        this.frequency = Frequency.OFF;
+        this.frequency = FREQUENCY_OFF;
         this.preferences = context.getSharedPreferences(PhoneLocationService.class.getName(), Context.MODE_PRIVATE);
 
         if (preferences.contains(LATITUDE_REFERENCE)
@@ -103,7 +104,9 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
             altitudeReference = Double.NaN;
         }
 
-        setName(android.os.Build.MODEL);
+        isStarted = false;
+        setName(String.format(context.getString(R.string.location_manager_name),
+                android.os.Build.MODEL));
         updateStatus(DeviceStatusListener.Status.READY);
     }
 
@@ -112,21 +115,22 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         this.handlerThread.start();
         this.handler = new Handler(this.handlerThread.getLooper());
 
-        batteryLevelReceiver.register();
+        updateStatus(DeviceStatusListener.Status.READY);
 
-        // Location
-        setLocationUpdateRate(LOCATION_GPS_INTERVAL_DEFAULT, LOCATION_NETWORK_INTERVAL_DEFAULT);
-        updateStatus(DeviceStatusListener.Status.CONNECTED);
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                batteryLevelReceiver.register();
+                updateStatus(DeviceStatusListener.Status.CONNECTED);
+                isStarted = true;
+            }
+        });
     }
 
     public void onLocationChanged(Location location) {
         if (location == null) {
             return;
         }
-
-        double latitude;
-        double longitude;
-        float altitude;
 
         if (latitudeReference == null) {
             latitudeReference = BigDecimal.valueOf(location.getLatitude());
@@ -139,11 +143,6 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
                     .apply();
         }
 
-        // Coordinates in degrees from a new (random) reference point
-        latitude = getRelativeLatitude(location.getLatitude());
-        longitude = getRelativeLongitude(location.getLongitude());
-        altitude = location.hasAltitude() ? getRelativeAltitude(location.getAltitude()) : Float.NaN;
-
         double eventTimestamp = location.getTime() / 1000d;
         double timestamp = System.currentTimeMillis() / 1000d;
 
@@ -152,9 +151,13 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
             provider = LocationProvider.OTHER;
         }
 
-        float accuracy = location.hasAccuracy() ? location.getAccuracy() : Float.NaN;
-        float speed = location.hasSpeed() ? location.getSpeed() : Float.NaN;
-        float bearing = location.hasBearing() ? location.getBearing() : Float.NaN;
+        // Coordinates in degrees from a new (random) reference point
+        Double latitude = normalizeFloating(getRelativeLatitude(location.getLatitude()));
+        Double longitude = normalizeFloating(getRelativeLongitude(location.getLongitude()));
+        Float altitude = normalizeFloating(location.hasAltitude() ? getRelativeAltitude(location.getAltitude()) : Float.NaN);
+        Float accuracy = normalizeFloating(location.hasAccuracy() ? location.getAccuracy() : Float.NaN);
+        Float speed = normalizeFloating(location.hasSpeed() ? location.getSpeed() : Float.NaN);
+        Float bearing = normalizeFloating(location.hasBearing() ? location.getBearing() : Float.NaN);
 
         PhoneRelativeLocation value = new PhoneRelativeLocation(
                 eventTimestamp, timestamp, provider,
@@ -176,6 +179,10 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         handler.post(new Runnable() {
              @Override
              public void run() {
+                 if (!isStarted) {
+                     return;
+                 }
+
                  // Remove updates, if any
                  locationManager.removeUpdates(PhoneLocationManager.this);
 
@@ -197,6 +204,34 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
                  }
              }
          });
+    }
+
+    /** Replace special float values with regular numbers. */
+    @Nullable
+    private static Double normalizeFloating(double orig) {
+        if (Double.isNaN(orig)) {
+            return null;
+        } else if (orig == Double.NEGATIVE_INFINITY) {
+            return -1e308;
+        } else if (orig == Double.POSITIVE_INFINITY) {
+            return 1e308;
+        } else {
+            return orig;
+        }
+    }
+
+    /** Replace special float values with regular numbers. */
+    @Nullable
+    private static Float normalizeFloating(float orig) {
+        if (Float.isNaN(orig)) {
+            return null;
+        } else if (orig == Float.NEGATIVE_INFINITY) {
+            return -3e38f;
+        } else if (orig == Float.POSITIVE_INFINITY) {
+            return 3e38f;
+        } else {
+            return orig;
+        }
     }
 
     private double getRelativeLatitude(double absoluteLatitude) {
@@ -239,37 +274,43 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         if (handler == null) {
             return;
         }
-        Frequency newFrequency;
-        if (isPlugged) {
-            newFrequency = Frequency.NORMAL;
-        } else if (level < MINIMUM_BATTERY_LEVEL) {
-            newFrequency = Frequency.OFF;
-        } else if (level < REDUCED_BATTERY_LEVEL) {
-            newFrequency = Frequency.REDUCED;
+
+        long useGpsInterval;
+        long useNetworkInterval;
+        int newFrequency;
+
+        synchronized (this) {
+            if (isPlugged || level >= batteryLevelReduced) {
+                newFrequency = FREQUENCY_NORMAL;
+            } else if (level >= batteryLevelMinimum) {
+                newFrequency = FREQUENCY_REDUCED;
+            } else {
+                newFrequency = FREQUENCY_OFF;
+            }
+
+            if (frequency == newFrequency) {
+                return;
+            }
+            frequency = newFrequency;
+
+            if (frequency == FREQUENCY_NORMAL) {
+                useGpsInterval = gpsInterval;
+                useNetworkInterval = networkInterval;
+            } else {
+                useGpsInterval = gpsIntervalReduced;
+                useNetworkInterval = networkIntervalReduced;
+            }
+        }
+
+        if (frequency == FREQUENCY_OFF) {
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    locationManager.removeUpdates(PhoneLocationManager.this);
+                }
+            });
         } else {
-            newFrequency = Frequency.NORMAL;
-        }
-
-        if (frequency == newFrequency) {
-            return;
-        }
-        frequency = newFrequency;
-
-        switch (frequency) {
-            case OFF:
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        locationManager.removeUpdates(PhoneLocationManager.this);
-                    }
-                });
-                break;
-            case REDUCED:
-                setLocationUpdateRate(LOCATION_GPS_INTERVAL_DEFAULT * 5, LOCATION_NETWORK_INTERVAL_DEFAULT * 5);
-                break;
-            case NORMAL:
-                setLocationUpdateRate(LOCATION_GPS_INTERVAL_DEFAULT, LOCATION_NETWORK_INTERVAL_DEFAULT);
-                break;
+            setLocationUpdateRate(useGpsInterval, useNetworkInterval);
         }
     }
 
@@ -279,14 +320,42 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
             handler.post(new Runnable() {
                 @Override
                 public void run() {
+                    batteryLevelReceiver.unregister();
                     locationManager.removeUpdates(PhoneLocationManager.this);
                 }
             });
             handler = null;
             handlerThread.quitSafely();
-            batteryLevelReceiver.unregister();
         }
 
         super.close();
+    }
+
+    public synchronized void setBatteryLevels(float batteryLevelMinimum, float batteryLevelReduced) {
+        if (this.batteryLevelMinimum == batteryLevelMinimum
+                && this.batteryLevelReduced == batteryLevelReduced) {
+            return;
+        }
+        this.batteryLevelMinimum = batteryLevelMinimum;
+        this.batteryLevelReduced = batteryLevelReduced;
+        this.onBatteryLevelChanged(batteryLevelReceiver.getLevel(), batteryLevelReceiver.isPlugged());
+    }
+
+    public synchronized void setIntervals(int gpsInterval, int gpsIntervalReduced, int networkInterval, int networkIntervalReduced) {
+        if (this.gpsInterval == gpsInterval
+                && this.gpsIntervalReduced == gpsIntervalReduced
+                && this.networkInterval == networkInterval
+                && this.networkIntervalReduced == networkIntervalReduced) {
+            return;
+        }
+
+        this.gpsInterval = gpsInterval;
+        this.gpsIntervalReduced = gpsIntervalReduced;
+        this.networkInterval = networkInterval;
+        this.networkIntervalReduced = networkIntervalReduced;
+
+        // reset intervals
+        this.frequency = -1;
+        this.onBatteryLevelChanged(batteryLevelReceiver.getLevel(), batteryLevelReceiver.isPlugged());
     }
 }

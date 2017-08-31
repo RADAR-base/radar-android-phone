@@ -16,51 +16,48 @@
 
 package org.radarcns.phone;
 
-import android.os.Build;
+import android.Manifest;
 import android.os.Bundle;
+import android.os.Parcelable;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-public class PhoneUsageProvider extends DeviceServiceProvider<BaseDeviceState> {
+public class PhoneContactsListProvider extends DeviceServiceProvider<BaseDeviceState> {
     private static final String PHONE_PREFIX = "org.radarcns.phone.";
-    private static final String PHONE_USAGE_INTERVAL = "phone_usage_interval_seconds";
-    private static final long USAGE_EVENT_PERIOD_DEFAULT = 60*60; // one hour
-
-    public static final String PHONE_USAGE_INTERVAL_KEY = PHONE_PREFIX + PHONE_USAGE_INTERVAL;
+    private static final String PHONE_CONTACTS_LIST_INTERVAL = "phone_contacts_list_interval_seconds";
+    public static final String PHONE_CONTACTS_LIST_INTERVAL_KEY =  PHONE_PREFIX + PHONE_CONTACTS_LIST_INTERVAL;
+    public static final long PHONE_CONTACTS_LIST_INTERVAL_DEFAULT = TimeUnit.DAYS.toSeconds(1);
 
     @Override
     public Class<?> getServiceClass() {
-        return PhoneUsageService.class;
+        return PhoneContactsListService.class;
     }
 
     @Override
     public String getDisplayName() {
-        return getActivity().getString(R.string.phoneUsageServiceDisplayName);
+        return "Contacts List";
     }
 
     @Override
     public List<String> needsPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            return Collections.singletonList(android.Manifest.permission.PACKAGE_USAGE_STATS);
-        } else {
-            return Collections.emptyList();
-        }
+        return Collections.singletonList(Manifest.permission.READ_CONTACTS);
     }
 
     @Override
     protected void configure(Bundle bundle) {
         super.configure(bundle);
         RadarConfiguration config = getConfig();
-        bundle.putLong(PHONE_USAGE_INTERVAL_KEY, config.getLong(
-                PHONE_USAGE_INTERVAL, USAGE_EVENT_PERIOD_DEFAULT));
+        bundle.putLong(PHONE_CONTACTS_LIST_INTERVAL_KEY, config.getLong(
+                PHONE_CONTACTS_LIST_INTERVAL, PHONE_CONTACTS_LIST_INTERVAL_DEFAULT));
     }
 
     @Override
-    public boolean isDisplayable() {
-        return false;
+    public Parcelable.Creator<BaseDeviceState> getStateCreator() {
+        return super.getStateCreator();
     }
 }

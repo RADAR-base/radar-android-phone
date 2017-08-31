@@ -23,18 +23,16 @@ import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
 import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
-import static org.radarcns.phone.PhoneLogProvider.CALL_SMS_LOG_INTERVAL_KEY;
+import static org.radarcns.phone.PhoneContactsListProvider.PHONE_CONTACTS_LIST_INTERVAL_DEFAULT;
+import static org.radarcns.phone.PhoneContactsListProvider.PHONE_CONTACTS_LIST_INTERVAL_KEY;
 
-public class PhoneLogService extends DeviceService {
-    private String sourceId;
-    private long logInterval;
+public class PhoneContactsListService extends DeviceService {
+    private volatile String sourceId;
+    private volatile long checkInterval = PHONE_CONTACTS_LIST_INTERVAL_DEFAULT;
 
     @Override
     protected DeviceManager createDeviceManager() {
-        if (sourceId == null) {
-            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
-        }
-        return new PhoneLogManager(this, getDataHandler(), getUserId(), sourceId, logInterval);
+        return new PhoneContactsListManager(this);
     }
 
     @Override
@@ -43,17 +41,33 @@ public class PhoneLogService extends DeviceService {
     }
 
     @Override
-    protected PhoneLogTopics getTopics() {
-        return PhoneLogTopics.getInstance();
+    protected PhoneContactsListTopics getTopics() {
+        return PhoneContactsListTopics.getInstance();
+    }
+
+    public String getSourceId() {
+        if (sourceId == null) {
+            synchronized (this) {
+                if (sourceId == null) {
+                    sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
+                }
+            }
+        }
+        return sourceId;
+    }
+
+    public long getCheckInterval() {
+        return checkInterval;
     }
 
     @Override
     protected void onInvocation(Bundle bundle) {
         super.onInvocation(bundle);
-        logInterval = bundle.getLong(CALL_SMS_LOG_INTERVAL_KEY);
-        PhoneLogManager deviceManager = (PhoneLogManager) getDeviceManager();
-        if (deviceManager != null) {
-            deviceManager.setCallAndSmsLogUpdateRate(logInterval);
+        checkInterval = bundle.getLong(PHONE_CONTACTS_LIST_INTERVAL_KEY);
+
+        PhoneContactsListManager manager = (PhoneContactsListManager) getDeviceManager();
+        if (manager != null) {
+            manager.setCheckInterval(checkInterval);
         }
     }
 }

@@ -4,7 +4,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:2.3.0'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
     }
@@ -16,7 +16,7 @@ apply plugin: 'com.github.dcendents.android-maven'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.3"
+    buildToolsVersion "26.0.1"
 
     defaultConfig {
         minSdkVersion 21
@@ -72,20 +72,18 @@ repositories {
 }
 
 dependencies {
-    compile 'org.radarcns:radar-commons-android:0.2.1'
-    compile 'org.radarcns:radar-schemas-commons:0.1'
+    compile 'org.radarcns:radar-commons-android:0.3-SNAPSHOT@aar'
+    compile 'org.radarcns:radar-schemas-commons:0.2-alpha.2-SNAPSHOT@jar'
 
+    compile 'com.android.support:support-annotations:25.3.1'
     // tmp
     compile 'com.squareup.okhttp3:okhttp:3.6.0'
-    compile 'org.apache.avro:avro:1.8.1'
-    compile 'org.xerial.snappy:snappy-java:1.1.2.6'
-    compile 'com.google.firebase:firebase-config:10.0.1'
-    compile ('org.radarcns:radar-commons:0.2.1') {
+    compile 'org.apache.avro:avro:1.8.2'
+    compile ('org.radarcns:radar-commons:0.4.2') {
         exclude group: 'io.confluent', module: 'kafka-avro-serializer'
         exclude group: 'org.apache.kafka', module: 'kafka-clients'
         exclude group: 'com.fasterxml.jackson.dataformat', module: 'jackson-dataformat-yaml'
     }
-    compile 'org.radarcns:radar-schemas-commons:0.1'
 
     testCompile 'junit:junit:4.12'
     testCompile 'org.slf4j:slf4j-simple:1.7.21'

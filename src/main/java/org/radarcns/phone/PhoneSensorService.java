@@ -16,6 +16,10 @@
 
 package org.radarcns.phone;
 
+import android.hardware.Sensor;
+import android.os.Bundle;
+import android.util.SparseIntArray;
+
 import org.apache.avro.specific.SpecificRecord;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
@@ -28,6 +32,11 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
+import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_ACCELERATION_INTERVAL;
+import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_GYROSCOPE_INTERVAL;
+import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_LIGHT_INTERVAL;
+import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL;
+import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_STEP_COUNT_INTERVAL;
 
 /**
  * A service that manages the phone sensor manager and a TableDataHandler to send store the data of
@@ -35,38 +44,58 @@ import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
  */
 public class PhoneSensorService extends DeviceService {
     private String sourceId;
+    private static final PhoneSensorTopics PHONE_SENSOR_TOPICS = PhoneSensorTopics.getInstance();
+    private SparseIntArray sensorDelays;
 
     @Override
-    protected DeviceManager createDeviceManager() {
-        return new PhoneSensorManager(this, getDataHandler(), getUserId(), getSourceId());
+    public void onCreate() {
+        super.onCreate();
+        sensorDelays = new SparseIntArray(5);
     }
 
     @Override
-    protected BaseDeviceState getDefaultState() {
+    protected DeviceManager createDeviceManager() {
+        if (sourceId == null) {
+            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
+        }
+        PhoneSensorManager manager = new PhoneSensorManager(this, getDataHandler(),
+                getUserId(), sourceId);
+        manager.setSensorDelays(sensorDelays);
+        return manager;
+    }
+
+    @Override
+    protected PhoneState getDefaultState() {
         return new PhoneState();
     }
 
     @Override
     protected PhoneSensorTopics getTopics() {
-        return PhoneSensorTopics.getInstance();
+        return PHONE_SENSOR_TOPICS;
     }
 
     @Override
     protected List<AvroTopic<MeasurementKey, ? extends SpecificRecord>> getCachedTopics() {
         return Arrays.<AvroTopic<MeasurementKey, ? extends SpecificRecord>>asList(
-                 getTopics().getAccelerationTopic()
-                ,getTopics().getLightTopic()
-                ,getTopics().getUserInteractionTopic()
-                ,getTopics().getGyroscopeTopic()
-                ,getTopics().getMagneticFieldTopic()
-                ,getTopics().getStepCountTopic()
+                PHONE_SENSOR_TOPICS.getAccelerationTopic(),
+                PHONE_SENSOR_TOPICS.getLightTopic(),
+                PHONE_SENSOR_TOPICS.getGyroscopeTopic(),
+                PHONE_SENSOR_TOPICS.getMagneticFieldTopic(),
+                PHONE_SENSOR_TOPICS.getStepCountTopic()
         );
     }
 
-    public String getSourceId() {
-        if (sourceId == null) {
-            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
+    @Override
+    protected void onInvocation(Bundle bundle) {
+        super.onInvocation(bundle);
+        sensorDelays.put(Sensor.TYPE_ACCELEROMETER, bundle.getInt(PHONE_SENSOR_ACCELERATION_INTERVAL));
+        sensorDelays.put(Sensor.TYPE_MAGNETIC_FIELD, bundle.getInt(PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL));
+        sensorDelays.put(Sensor.TYPE_GYROSCOPE, bundle.getInt(PHONE_SENSOR_GYROSCOPE_INTERVAL));
+        sensorDelays.put(Sensor.TYPE_LIGHT, bundle.getInt(PHONE_SENSOR_LIGHT_INTERVAL));
+        sensorDelays.put(Sensor.TYPE_STEP_COUNTER, bundle.getInt(PHONE_SENSOR_STEP_COUNT_INTERVAL));
+        PhoneSensorManager manager = (PhoneSensorManager) getDeviceManager();
+        if (manager != null) {
+            manager.setSensorDelays(sensorDelays);
         }
-        return sourceId;
     }
 }

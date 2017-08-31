@@ -16,13 +16,14 @@
 
 package org.radarcns.phone;
 
+import android.os.Bundle;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
-import org.radarcns.android.device.DeviceStatusListener;
 
 import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
+import static org.radarcns.phone.PhoneUsageProvider.PHONE_USAGE_INTERVAL_KEY;
 
 /**
  * A service that manages the phone sensor manager and a TableDataHandler to send store the data of
@@ -30,17 +31,19 @@ import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
  */
 public class PhoneUsageService extends DeviceService {
     private String sourceId;
+    private long usageEventInterval;
 
     @Override
     protected DeviceManager createDeviceManager() {
-        return new PhoneUsageManager(this, getDataHandler(), getUserId(), getSourceId());
+        if (sourceId == null) {
+            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
+        }
+        return new PhoneUsageManager(this, getDataHandler(), getUserId(), sourceId, usageEventInterval);
     }
 
     @Override
     protected BaseDeviceState getDefaultState() {
-        PhoneState newStatus = new PhoneState();
-        newStatus.setStatus(DeviceStatusListener.Status.DISCONNECTED);
-        return newStatus;
+        return new BaseDeviceState();
     }
 
     @Override
@@ -48,10 +51,14 @@ public class PhoneUsageService extends DeviceService {
         return PhoneUsageTopics.getInstance();
     }
 
-    public String getSourceId() {
-        if (sourceId == null) {
-            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
+    @Override
+    protected void onInvocation(Bundle bundle) {
+        super.onInvocation(bundle);
+        usageEventInterval = bundle.getLong(PHONE_USAGE_INTERVAL_KEY);
+
+        PhoneUsageManager manager = (PhoneUsageManager) getDeviceManager();
+        if (manager != null) {
+            manager.setUsageEventUpdateRate(usageEventInterval);
         }
-        return sourceId;
     }
 }
