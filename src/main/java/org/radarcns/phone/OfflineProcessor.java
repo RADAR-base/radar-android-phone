@@ -125,6 +125,7 @@ public class OfflineProcessor implements Closeable {
         }
         this.interval = interval;
         if (isStarted.get()) {
+            alarmManager.cancel(pendingIntent);
             schedule();
         }
     }
