@@ -31,7 +31,7 @@ public class PhoneContactsListProvider extends DeviceServiceProvider<BaseDeviceS
     private static final String PHONE_PREFIX = "org.radarcns.phone.";
     private static final String PHONE_CONTACTS_LIST_INTERVAL = "phone_contacts_list_interval_seconds";
     public static final String PHONE_CONTACTS_LIST_INTERVAL_KEY =  PHONE_PREFIX + PHONE_CONTACTS_LIST_INTERVAL;
-    public static final long PHONE_CONTACTS_LIST_INTERVAL_DEFAULT = TimeUnit.MINUTES.toSeconds(1);
+    public static final long PHONE_CONTACTS_LIST_INTERVAL_DEFAULT = TimeUnit.DAYS.toSeconds(1);
 
     @Override
     public Class<?> getServiceClass() {
