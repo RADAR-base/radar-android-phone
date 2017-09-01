@@ -18,7 +18,6 @@ package org.radarcns.phone;
 
 import android.Manifest;
 import android.os.Bundle;
-import android.os.Parcelable;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
@@ -54,10 +53,5 @@ public class PhoneContactsListProvider extends DeviceServiceProvider<BaseDeviceS
         RadarConfiguration config = getConfig();
         bundle.putLong(PHONE_CONTACTS_LIST_INTERVAL_KEY, config.getLong(
                 PHONE_CONTACTS_LIST_INTERVAL, PHONE_CONTACTS_LIST_INTERVAL_DEFAULT));
-    }
-
-    @Override
-    public Parcelable.Creator<BaseDeviceState> getStateCreator() {
-        return super.getStateCreator();
     }
 }
