@@ -16,5 +16,6 @@
         <service android:name=".PhoneLocationService"/>
         <service android:name=".PhoneLogService"/>
         <service android:name=".PhoneUsageService"/>
+        <service android:name=".PhoneBluetoothService"/>
     </application>
 </manifest>
