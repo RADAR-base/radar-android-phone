@@ -22,6 +22,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Debug;
 import android.os.PowerManager;
 import android.os.Process;
 import android.os.SystemClock;
@@ -91,8 +92,6 @@ public class OfflineProcessor implements Closeable {
 
     /** Start processing. */
     public void start() {
-        processBroadcast();
-
         context.registerReceiver(this.receiver, new IntentFilter(requestName));
         schedule();
         isStarted.set(true);
@@ -148,9 +147,16 @@ public class OfflineProcessor implements Closeable {
     }
 
     private void schedule() {
+        boolean runImmediately = Debug.isDebuggerConnected();
+        long firstAlarm;
+        if (runImmediately) {
+            processBroadcast();
+            firstAlarm = SystemClock.elapsedRealtime() + interval * 1000;
+        } else {
+            firstAlarm = SystemClock.elapsedRealtime();
+        }
         int type = keepAwake ? AlarmManager.ELAPSED_REALTIME_WAKEUP : AlarmManager.ELAPSED_REALTIME;
-        alarmManager.setInexactRepeating(type, SystemClock.elapsedRealtime() + interval * 1000,
-                interval * 1000, pendingIntent);
+        alarmManager.setInexactRepeating(type, firstAlarm, interval * 1000, pendingIntent);
     }
 
     /** Whether the processing Runnable should stop execution. */
