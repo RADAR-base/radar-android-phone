@@ -41,7 +41,7 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
         super(service, service.getDefaultState(), service.getDataHandler(), service.getUserId(), service.getSourceId());
 
         processor = new OfflineProcessor(service, this, SCAN_DEVICES_REQUEST_CODE,
-                ACTION_SCAN_DEVICES, service.getCheckInterval(), false);
+                ACTION_SCAN_DEVICES, service.getCheckInterval(), true);
 
         bluetoothDevicesTable =  getCache(service.getTopics().getBluetoothDevicesTopic());
     }
