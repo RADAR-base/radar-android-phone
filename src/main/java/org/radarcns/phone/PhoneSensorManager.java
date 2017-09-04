@@ -91,6 +91,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
     private final HandlerThread mHandlerThread;
     private final SensorManager sensorManager;
+    private final BroadcastReceiver batteryLevelReceiver;
     private int lastStepCount = -1;
     private PowerManager.WakeLock wakeLock;
     private Handler mHandler;
@@ -108,6 +109,19 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
         mHandlerThread = new HandlerThread("Phone sensors", THREAD_PRIORITY_BACKGROUND);
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+        batteryLevelReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, final Intent intent) {
+                if (intent.getAction().equals(Intent.ACTION_BATTERY_CHANGED)) {
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            processBatteryStatus(intent);
+                        }
+                    });
+                }
+            }
+        };
 
         setName(android.os.Build.MODEL);
     }
@@ -125,20 +139,8 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         registerSensors();
 
         // Battery
-        processBatteryStatus(getService().registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, final Intent intent) {
-                if (intent.getAction().equals(Intent.ACTION_BATTERY_CHANGED)) {
-                    mHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            processBatteryStatus(intent);
-                        }
-                    });
-
-                }
-            }
-        }, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
+        processBatteryStatus(
+                getService().registerReceiver(batteryLevelReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
     }
@@ -319,6 +321,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
     @Override
     public void close() throws IOException {
+        getService().unregisterReceiver(batteryLevelReceiver);
         sensorManager.unregisterListener(this);
         wakeLock.release();
         mHandler = null;
