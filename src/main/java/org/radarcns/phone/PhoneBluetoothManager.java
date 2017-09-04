@@ -29,6 +29,7 @@ import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
 import org.radarcns.key.MeasurementKey;
 
+import java.io.IOException;
 import java.util.Set;
 
 public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothService, BaseDeviceState> implements Runnable {
@@ -80,10 +81,11 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
                             bluetoothAdapter.disable();
                         }
 
-                        double now = System.currentTimeMillis() / 1000.0;
-                        send(bluetoothDevicesTable,
-                                new PhoneBluetoothDevices(now, now, bondedDevices, numberOfDevices, wasEnabled));
-
+                        if (!isClosed()) {
+                            double now = System.currentTimeMillis() / 1000.0;
+                            send(bluetoothDevicesTable,
+                                    new PhoneBluetoothDevices(now, now, bondedDevices, numberOfDevices, wasEnabled));
+                        }
                         break;
                     }
                 }
@@ -98,6 +100,12 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
     public void start(@NonNull Set<String> set) {
         processor.start();
         updateStatus(DeviceStatusListener.Status.CONNECTED);
+    }
+
+    @Override
+    public void close() throws IOException {
+        processor.close();
+        super.close();
     }
 
     void setCheckInterval(long checkInterval) {
