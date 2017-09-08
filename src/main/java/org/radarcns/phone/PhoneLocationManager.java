@@ -43,6 +43,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, BaseDeviceState> implements LocationListener, BatteryLevelReceiver.BatteryLevelListener {
     private static final Logger logger = LoggerFactory.getLogger(PhoneLocationManager.class);
@@ -151,7 +152,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
             provider = LocationProvider.OTHER;
         }
 
-        // Coordinates in degrees from a new (random) reference point
+        // Coordinates in degrees from the first coordinate registered
         Double latitude = normalizeFloating(getRelativeLatitude(location.getLatitude()));
         Double longitude = normalizeFloating(getRelativeLongitude(location.getLongitude()));
         Float altitude = normalizeFloating(location.hasAltitude() ? getRelativeAltitude(location.getAltitude()) : Float.NaN);
@@ -238,11 +239,16 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         if (Double.isNaN(absoluteLatitude)) {
             return Double.NaN;
         }
+
         BigDecimal latitude = BigDecimal.valueOf(absoluteLatitude);
         if (latitudeReference == null) {
-            latitudeReference = latitude;
-            preferences.edit().putString(LATITUDE_REFERENCE, latitude.toString()).apply();
+            // Create reference within 8 degrees of actual latitude
+            // corresponds mildly with the UTM zones used to make flat coordinates estimations.
+            double reference = ThreadLocalRandom.current().nextDouble(-4, 4); // interval [-4,4)
+            latitudeReference = BigDecimal.valueOf(reference);
+            preferences.edit().putString(LATITUDE_REFERENCE, latitudeReference.toString()).apply();
         }
+
         return latitude.subtract(latitudeReference).doubleValue();
     }
 
