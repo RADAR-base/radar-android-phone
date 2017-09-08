@@ -261,7 +261,18 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
             longitudeReference = longitude;
             preferences.edit().putString(LONGITUDE_REFERENCE, longitude.toString()).apply();
         }
-        return longitude.subtract(longitudeReference).doubleValue();
+
+        double relativeLongitude = longitude.subtract(longitudeReference).doubleValue();
+
+        // Wraparound if relative longitude outside range of valid values [-180,180]
+        // assumption: relative longitude in interval [-540,540]
+        if (relativeLongitude > 180d) {
+            return relativeLongitude - 360d;
+        } else if (relativeLongitude < -180d) {
+            return relativeLongitude + 360d;
+        }
+
+        return relativeLongitude;
     }
 
     private float getRelativeAltitude(double absoluteAltitude) {
