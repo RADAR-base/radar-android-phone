@@ -17,8 +17,6 @@
 package org.radarcns.phone;
 
 import android.os.Bundle;
-import android.os.Parcelable;
-
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.DeviceServiceProvider;
 
@@ -27,12 +25,12 @@ import java.util.List;
 
 public class PhoneSensorProvider extends DeviceServiceProvider<PhoneState> {
     static final int PHONE_SENSOR_INTERVAL_DEFAULT = 200;
-    static final String PHONE_SENSOR_INTERVAL = "phone.sensor.default.interval";
-    static final String PHONE_SENSOR_GYROSCOPE_INTERVAL = "phone.sensor.gyroscope.interval";
-    static final String PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL = "phone.sensor.magneticfield.interval";
-    static final String PHONE_SENSOR_STEP_COUNT_INTERVAL = "phone.sensor.steps.interval";
-    static final String PHONE_SENSOR_ACCELERATION_INTERVAL = "phone.sensor.acceleration.interval";
-    static final String PHONE_SENSOR_LIGHT_INTERVAL = "phone.sensor.light.interval";
+    static final String PHONE_SENSOR_INTERVAL = "phone_sensor_default_interval";
+    static final String PHONE_SENSOR_GYROSCOPE_INTERVAL = "phone_sensor_gyroscope_interval";
+    static final String PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL = "phone_sensor_magneticfield_interval";
+    static final String PHONE_SENSOR_STEP_COUNT_INTERVAL = "phone_sensor_steps_interval";
+    static final String PHONE_SENSOR_ACCELERATION_INTERVAL = "phone_sensor_acceleration_interval";
+    static final String PHONE_SENSOR_LIGHT_INTERVAL = "phone_sensor_light_interval";
 
     @Override
     public Class<?> getServiceClass() {

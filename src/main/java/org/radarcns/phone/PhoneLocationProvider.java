@@ -17,8 +17,6 @@
 package org.radarcns.phone;
 
 import android.os.Bundle;
-import android.os.Parcelable;
-
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
@@ -30,12 +28,12 @@ import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
 public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState> {
-    private static final String PHONE_LOCATION_GPS_INTERVAL = "phone.location.gps.interval";
-    private static final String PHONE_LOCATION_GPS_INTERVAL_REDUCED = "phone.location.gps.interval.reduced";
-    private static final String PHONE_LOCATION_NETWORK_INTERVAL = "phone.location.network.interval";
-    private static final String PHONE_LOCATION_NETWORK_INTERVAL_REDUCED = "phone.location.network.interval.reduced";
-    private static final String PHONE_LOCATION_BATTERY_LEVEL_REDUCED = "phone.location.battery.level.reduced";
-    private static final String PHONE_LOCATION_BATTERY_LEVEL_MINIMUM = "phone.location.battery.level.minimum";
+    private static final String PHONE_LOCATION_GPS_INTERVAL = "phone_location_gps_interval";
+    private static final String PHONE_LOCATION_GPS_INTERVAL_REDUCED = "phone_location_gps_interval_reduced";
+    private static final String PHONE_LOCATION_NETWORK_INTERVAL = "phone_location_network_interval";
+    private static final String PHONE_LOCATION_NETWORK_INTERVAL_REDUCED = "phone_location_network_interval_reduced";
+    private static final String PHONE_LOCATION_BATTERY_LEVEL_REDUCED = "phone_location_battery_level_reduced";
+    private static final String PHONE_LOCATION_BATTERY_LEVEL_MINIMUM = "phone_location_battery_level_minimum";
 
     public static final String PREFIX = PhoneLocationProvider.class.getName() + '.';
     public static final String INTERVAL_GPS_KEY = PREFIX + PHONE_LOCATION_GPS_INTERVAL;
