@@ -75,6 +75,7 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
 
                     case BluetoothAdapter.ACTION_DISCOVERY_FINISHED: {
                         getService().unregisterReceiver(this);
+                        bluetoothBroadcastReceiver = null;
 
                         int bondedDevices = bluetoothAdapter.getBondedDevices().size();
 
