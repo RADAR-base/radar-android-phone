@@ -37,6 +37,7 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
     private static final String ACTION_SCAN_DEVICES = "org.radarcns.phone.PhoneBluetoothManager.ACTION_SCAN_DEVICES";
     private final OfflineProcessor processor;
     private final DataCache<MeasurementKey, PhoneBluetoothDevices> bluetoothDevicesTable;
+    private BroadcastReceiver bluetoothBroadcastReceiver;
 
     public PhoneBluetoothManager(PhoneBluetoothService service) {
         super(service, service.getDefaultState(), service.getDataHandler(), service.getUserId(), service.getSourceId());
@@ -61,7 +62,7 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
         filter.addAction(BluetoothDevice.ACTION_FOUND);
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
 
-        BroadcastReceiver bluetoothReceiver = new BroadcastReceiver() {
+        bluetoothBroadcastReceiver = new BroadcastReceiver() {
             private int numberOfDevices;
 
             @Override
@@ -92,7 +93,7 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
             }
         };
 
-        getService().registerReceiver(bluetoothReceiver, filter);
+        getService().registerReceiver(bluetoothBroadcastReceiver, filter);
         bluetoothAdapter.startDiscovery();
     }
 
@@ -105,6 +106,10 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
     @Override
     public void close() throws IOException {
         processor.close();
+        if (bluetoothBroadcastReceiver != null) {
+            getService().unregisterReceiver(bluetoothBroadcastReceiver);
+            bluetoothBroadcastReceiver = null;
+        }
         super.close();
     }
 
