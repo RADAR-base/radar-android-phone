@@ -23,8 +23,8 @@ import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
 import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
-import static org.radarcns.phone.PhoneContactsListProvider.PHONE_CONTACTS_LIST_INTERVAL_DEFAULT;
-import static org.radarcns.phone.PhoneContactsListProvider.PHONE_CONTACTS_LIST_INTERVAL_KEY;
+import static org.radarcns.phone.PhoneContactListProvider.PHONE_CONTACTS_LIST_INTERVAL_DEFAULT;
+import static org.radarcns.phone.PhoneContactListProvider.PHONE_CONTACTS_LIST_INTERVAL_KEY;
 
 public class PhoneContactsListService extends DeviceService {
     private volatile String sourceId;
@@ -32,7 +32,7 @@ public class PhoneContactsListService extends DeviceService {
 
     @Override
     protected DeviceManager createDeviceManager() {
-        return new PhoneContactsListManager(this);
+        return new PhoneContactListManager(this);
     }
 
     @Override
@@ -41,8 +41,8 @@ public class PhoneContactsListService extends DeviceService {
     }
 
     @Override
-    protected PhoneContactsListTopics getTopics() {
-        return PhoneContactsListTopics.getInstance();
+    protected PhoneContactListTopics getTopics() {
+        return PhoneContactListTopics.getInstance();
     }
 
     public String getSourceId() {
@@ -65,7 +65,7 @@ public class PhoneContactsListService extends DeviceService {
         super.onInvocation(bundle);
         checkInterval = bundle.getLong(PHONE_CONTACTS_LIST_INTERVAL_KEY);
 
-        PhoneContactsListManager manager = (PhoneContactsListManager) getDeviceManager();
+        PhoneContactListManager manager = (PhoneContactListManager) getDeviceManager();
         if (manager != null) {
             manager.setCheckInterval(checkInterval);
         }

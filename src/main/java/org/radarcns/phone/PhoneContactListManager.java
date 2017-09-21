@@ -22,6 +22,7 @@ import android.database.Cursor;
 import android.provider.BaseColumns;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
+import avro.shaded.com.google.common.collect.Sets;
 import org.radarcns.android.data.DataCache;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
@@ -33,21 +34,21 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-public class PhoneContactsListManager extends AbstractDeviceManager<PhoneContactsListService, BaseDeviceState> implements Runnable {
+public class PhoneContactListManager extends AbstractDeviceManager<PhoneContactsListService, BaseDeviceState> implements Runnable {
     private static final int CONTACTS_LIST_UPDATE_REQUEST_CODE = 15765692;
-    private static final String ACTION_UPDATE_CONTACTS_LIST = "org.radarcns.phone.PhoneContactsListManager.ACTION_UPDATE_CONTACTS_LIST";
+    private static final String ACTION_UPDATE_CONTACTS_LIST = "org.radarcns.phone.PhoneContactListManager.ACTION_UPDATE_CONTACTS_LIST";
     private static final String[] PROJECTION = {BaseColumns._ID};
     public static final String CONTACT_IDS = "contact_ids";
 
     private final SharedPreferences preferences;
     private final OfflineProcessor processor;
-    private final DataCache<MeasurementKey, PhoneContactsList> contactsTable;
+    private final DataCache<MeasurementKey, PhoneContactList> contactsTable;
     private Set<String> savedContactIds;
 
-    public PhoneContactsListManager(PhoneContactsListService service) {
+    public PhoneContactListManager(PhoneContactsListService service) {
         super(service, service.getDefaultState(), service.getDataHandler(), service.getUserId(), service.getSourceId());
 
-        preferences = service.getSharedPreferences(PhoneContactsListManager.class.getName(), Context.MODE_PRIVATE);
+        preferences = service.getSharedPreferences(PhoneContactListManager.class.getName(), Context.MODE_PRIVATE);
         contactsTable = getCache(service.getTopics().getContactListTopic());
 
         processor = new OfflineProcessor(service, this, CONTACTS_LIST_UPDATE_REQUEST_CODE,
@@ -72,27 +73,20 @@ public class PhoneContactsListManager extends AbstractDeviceManager<PhoneContact
     public void run() {
         Set<String> newContactIds = getContactIds();
 
-        int added = 0;
-        int removed = 0;
-        if (savedContactIds != null) {
-            for (String id : newContactIds) {
-                if (!savedContactIds.contains(id)) {
-                    added++;
-                }
-            }
+        Integer added = null;
+        Integer removed = null;
 
-            for (String id : savedContactIds) {
-                if (!newContactIds.contains(id)) {
-                    removed++;
-                }
-            }
+
+        if (savedContactIds != null) {
+            added = Sets.difference(newContactIds, savedContactIds).size();
+            removed = Sets.difference(savedContactIds, newContactIds).size();
         }
 
         savedContactIds = newContactIds;
         preferences.edit().putStringSet(CONTACT_IDS, savedContactIds).apply();
 
         double timestamp = System.currentTimeMillis() / 1000.0;
-        send(contactsTable, new PhoneContactsList(timestamp, timestamp, added, removed, newContactIds.size()));
+        send(contactsTable, new PhoneContactList(timestamp, timestamp, added, removed, newContactIds.size()));
     }
 
     private Set<String> getContactIds() {
