@@ -20,28 +20,28 @@ import org.radarcns.android.device.DeviceTopics;
 import org.radarcns.key.MeasurementKey;
 import org.radarcns.topic.AvroTopic;
 
-public class PhoneContactsListTopics extends DeviceTopics {
-    private static volatile PhoneContactsListTopics instance;
-    private final AvroTopic<MeasurementKey, PhoneContactsList> contactListTopic;
+public class PhoneContactListTopics extends DeviceTopics {
+    private static volatile PhoneContactListTopics instance;
+    private final AvroTopic<MeasurementKey, PhoneContactList> contactListTopic;
 
-    public static PhoneContactsListTopics getInstance() {
+    public static PhoneContactListTopics getInstance() {
         if (instance == null) {
-            synchronized (PhoneContactsListTopics.class) {
+            synchronized (PhoneContactListTopics.class) {
                 if (instance == null) {
-                    instance = new PhoneContactsListTopics();
+                    instance = new PhoneContactListTopics();
                 }
             }
         }
         return instance;
     }
 
-    private PhoneContactsListTopics() {
+    private PhoneContactListTopics() {
         contactListTopic = createTopic("android_phone_contacts",
-                PhoneContactsList.getClassSchema(),
-                PhoneContactsList.class);
+                PhoneContactList.getClassSchema(),
+                PhoneContactList.class);
     }
 
-    public AvroTopic<MeasurementKey, PhoneContactsList> getContactListTopic() {
+    public AvroTopic<MeasurementKey, PhoneContactList> getContactListTopic() {
         return contactListTopic;
     }
 }

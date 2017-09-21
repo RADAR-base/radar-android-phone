@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class PhoneContactsListProvider extends DeviceServiceProvider<BaseDeviceState> {
+public class PhoneContactListProvider extends DeviceServiceProvider<BaseDeviceState> {
     private static final String PHONE_PREFIX = "org.radarcns.phone.";
     private static final String PHONE_CONTACTS_LIST_INTERVAL = "phone_contacts_list_interval_seconds";
     public static final String PHONE_CONTACTS_LIST_INTERVAL_KEY =  PHONE_PREFIX + PHONE_CONTACTS_LIST_INTERVAL;
