@@ -17,7 +17,10 @@
 package org.radarcns.phone;
 
 import org.radarcns.android.device.DeviceTopics;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.phone.PhoneCall;
+import org.radarcns.passive.phone.PhoneSms;
+import org.radarcns.passive.phone.PhoneSmsUnread;
 import org.radarcns.topic.AvroTopic;
 
 /** Topic manager for topics concerning the Phone sensors. */
@@ -25,9 +28,9 @@ public class PhoneLogTopics extends DeviceTopics {
     private static final Object syncObject = new Object();
     private static PhoneLogTopics instance = null;
 
-    private final AvroTopic<MeasurementKey, PhoneCall> callTopic;
-    private final AvroTopic<MeasurementKey, PhoneSms> smsTopic;
-    private final AvroTopic<MeasurementKey, PhoneSmsUnread> smsUnreadTopic;
+    private final AvroTopic<ObservationKey, PhoneCall> callTopic;
+    private final AvroTopic<ObservationKey, PhoneSms> smsTopic;
+    private final AvroTopic<ObservationKey, PhoneSmsUnread> smsUnreadTopic;
 
     public static PhoneLogTopics getInstance() {
         synchronized (syncObject) {
@@ -50,15 +53,15 @@ public class PhoneLogTopics extends DeviceTopics {
                 PhoneSmsUnread.class);
     }
 
-    public AvroTopic<MeasurementKey, PhoneCall> getCallTopic() {
+    public AvroTopic<ObservationKey, PhoneCall> getCallTopic() {
         return callTopic;
     }
 
-    public AvroTopic<MeasurementKey, PhoneSms> getSmsTopic() {
+    public AvroTopic<ObservationKey, PhoneSms> getSmsTopic() {
         return smsTopic;
     }
 
-    public AvroTopic<MeasurementKey, PhoneSmsUnread> getSmsUnreadTopic() {
+    public AvroTopic<ObservationKey, PhoneSmsUnread> getSmsUnreadTopic() {
         return smsUnreadTopic;
     }
 }

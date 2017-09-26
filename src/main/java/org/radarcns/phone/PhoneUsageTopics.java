@@ -17,7 +17,9 @@
 package org.radarcns.phone;
 
 import org.radarcns.android.device.DeviceTopics;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.phone.PhoneUsageEvent;
+import org.radarcns.passive.phone.PhoneUserInteraction;
 import org.radarcns.topic.AvroTopic;
 
 /** Topic manager for topics concerning the Phone sensors. */
@@ -25,8 +27,8 @@ public class PhoneUsageTopics extends DeviceTopics {
     private static final Object syncObject = new Object();
     private static PhoneUsageTopics instance = null;
 
-    private final AvroTopic<MeasurementKey, PhoneUserInteraction> interactionTopic;
-    private final AvroTopic<MeasurementKey, PhoneUsageEvent> usageEventTopic;
+    private final AvroTopic<ObservationKey, PhoneUserInteraction> interactionTopic;
+    private final AvroTopic<ObservationKey, PhoneUsageEvent> usageEventTopic;
 
     public static PhoneUsageTopics getInstance() {
         synchronized (syncObject) {
@@ -46,11 +48,11 @@ public class PhoneUsageTopics extends DeviceTopics {
                 PhoneUsageEvent.class);
     }
 
-    public AvroTopic<MeasurementKey, PhoneUserInteraction> getUserInteractionTopic() {
+    public AvroTopic<ObservationKey, PhoneUserInteraction> getUserInteractionTopic() {
         return interactionTopic;
     }
 
-    public AvroTopic<MeasurementKey, PhoneUsageEvent> getUsageEventTopic() {
+    public AvroTopic<ObservationKey, PhoneUsageEvent> getUsageEventTopic() {
         return usageEventTopic;
     }
 }

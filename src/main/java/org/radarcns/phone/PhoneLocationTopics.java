@@ -17,7 +17,8 @@
 package org.radarcns.phone;
 
 import org.radarcns.android.device.DeviceTopics;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.phone.PhoneRelativeLocation;
 import org.radarcns.topic.AvroTopic;
 
 /** Topic manager for topics concerning the Phone sensors. */
@@ -25,7 +26,7 @@ public class PhoneLocationTopics extends DeviceTopics {
     private static final Object syncObject = new Object();
     private static PhoneLocationTopics instance = null;
 
-    private final AvroTopic<MeasurementKey, PhoneRelativeLocation> relativeLocationTopic;
+    private final AvroTopic<ObservationKey, PhoneRelativeLocation> relativeLocationTopic;
 
     public static PhoneLocationTopics getInstance() {
         synchronized (syncObject) {
@@ -42,7 +43,7 @@ public class PhoneLocationTopics extends DeviceTopics {
                 PhoneRelativeLocation.class);
     }
 
-    public AvroTopic<MeasurementKey, PhoneRelativeLocation> getRelativeLocationTopic() {
+    public AvroTopic<ObservationKey, PhoneRelativeLocation> getRelativeLocationTopic() {
         return relativeLocationTopic;
     }
 }

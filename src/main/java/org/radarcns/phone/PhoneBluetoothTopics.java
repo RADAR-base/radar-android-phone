@@ -17,11 +17,12 @@
 package org.radarcns.phone;
 
 import org.radarcns.android.device.DeviceTopics;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.phone.PhoneBluetoothDevices;
 import org.radarcns.topic.AvroTopic;
 
 public class PhoneBluetoothTopics extends DeviceTopics {
-    private final AvroTopic<MeasurementKey, PhoneBluetoothDevices> bluetoothDevicesTopic;
+    private final AvroTopic<ObservationKey, PhoneBluetoothDevices> bluetoothDevicesTopic;
 
     private static volatile PhoneBluetoothTopics instance;
 
@@ -42,7 +43,7 @@ public class PhoneBluetoothTopics extends DeviceTopics {
         return instance;
     }
 
-    public AvroTopic<MeasurementKey, PhoneBluetoothDevices> getBluetoothDevicesTopic() {
+    public AvroTopic<ObservationKey, PhoneBluetoothDevices> getBluetoothDevicesTopic() {
         return bluetoothDevicesTopic;
     }
 }

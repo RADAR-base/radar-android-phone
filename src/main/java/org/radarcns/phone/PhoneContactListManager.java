@@ -27,7 +27,8 @@ import org.radarcns.android.data.DataCache;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.phone.PhoneContactList;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -42,7 +43,7 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
 
     private final SharedPreferences preferences;
     private final OfflineProcessor processor;
-    private final DataCache<MeasurementKey, PhoneContactList> contactsTable;
+    private final DataCache<ObservationKey, PhoneContactList> contactsTable;
     private Set<String> savedContactIds;
 
     public PhoneContactListManager(PhoneContactsListService service) {

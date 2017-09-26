@@ -37,7 +37,14 @@ import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceStatusListener;
 import org.radarcns.android.util.AndroidThreadFactory;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.phone.BatteryStatus;
+import org.radarcns.passive.phone.PhoneAcceleration;
+import org.radarcns.passive.phone.PhoneBatteryLevel;
+import org.radarcns.passive.phone.PhoneGyroscope;
+import org.radarcns.passive.phone.PhoneLight;
+import org.radarcns.passive.phone.PhoneMagneticField;
+import org.radarcns.passive.phone.PhoneStepCount;
 import org.radarcns.topic.AvroTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,12 +88,12 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         BATTERY_TYPES.append(BATTERY_STATUS_FULL, BatteryStatus.FULL);
     }
 
-    private final DataCache<MeasurementKey, PhoneAcceleration> accelerationTable;
-    private final DataCache<MeasurementKey, PhoneLight> lightTable;
-    private final DataCache<MeasurementKey, PhoneStepCount> stepCountTable;
-    private final DataCache<MeasurementKey, PhoneGyroscope> gyroscopeTable;
-    private final DataCache<MeasurementKey, PhoneMagneticField> magneticFieldTable;
-    private final AvroTopic<MeasurementKey, PhoneBatteryLevel> batteryTopic;
+    private final DataCache<ObservationKey, PhoneAcceleration> accelerationTable;
+    private final DataCache<ObservationKey, PhoneLight> lightTable;
+    private final DataCache<ObservationKey, PhoneStepCount> stepCountTable;
+    private final DataCache<ObservationKey, PhoneGyroscope> gyroscopeTable;
+    private final DataCache<ObservationKey, PhoneMagneticField> magneticFieldTable;
+    private final AvroTopic<ObservationKey, PhoneBatteryLevel> batteryTopic;
     private final SparseIntArray sensorDelays;
 
     private final HandlerThread mHandlerThread;

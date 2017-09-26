@@ -30,7 +30,12 @@ import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
 import org.radarcns.android.util.HashGenerator;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.phone.PhoneCall;
+import org.radarcns.passive.phone.PhoneCallType;
+import org.radarcns.passive.phone.PhoneSms;
+import org.radarcns.passive.phone.PhoneSmsType;
+import org.radarcns.passive.phone.PhoneSmsUnread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,9 +72,9 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         SMS_TYPES.append(Telephony.Sms.MESSAGE_TYPE_QUEUED, PhoneSmsType.OTHER);
     }
 
-    private final DataCache<MeasurementKey, PhoneCall> callTable;
-    private final DataCache<MeasurementKey, PhoneSms> smsTable;
-    private final DataCache<MeasurementKey, PhoneSmsUnread> smsUnreadTable;
+    private final DataCache<ObservationKey, PhoneCall> callTable;
+    private final DataCache<ObservationKey, PhoneSms> smsTable;
+    private final DataCache<ObservationKey, PhoneSmsUnread> smsUnreadTable;
     private final HashGenerator hashGenerator;
     private final SharedPreferences preferences;
     private final ContentResolver db;

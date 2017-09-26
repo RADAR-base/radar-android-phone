@@ -17,12 +17,13 @@
 package org.radarcns.phone;
 
 import org.radarcns.android.device.DeviceTopics;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.phone.PhoneContactList;
 import org.radarcns.topic.AvroTopic;
 
 public class PhoneContactListTopics extends DeviceTopics {
     private static volatile PhoneContactListTopics instance;
-    private final AvroTopic<MeasurementKey, PhoneContactList> contactListTopic;
+    private final AvroTopic<ObservationKey, PhoneContactList> contactListTopic;
 
     public static PhoneContactListTopics getInstance() {
         if (instance == null) {
@@ -41,7 +42,7 @@ public class PhoneContactListTopics extends DeviceTopics {
                 PhoneContactList.class);
     }
 
-    public AvroTopic<MeasurementKey, PhoneContactList> getContactListTopic() {
+    public AvroTopic<ObservationKey, PhoneContactList> getContactListTopic() {
         return contactListTopic;
     }
 }

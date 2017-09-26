@@ -27,7 +27,8 @@ import org.radarcns.android.data.DataCache;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.phone.PhoneBluetoothDevices;
 
 import java.io.IOException;
 import java.util.Set;
@@ -36,7 +37,7 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
     private static final int SCAN_DEVICES_REQUEST_CODE = 3248902;
     private static final String ACTION_SCAN_DEVICES = "org.radarcns.phone.PhoneBluetoothManager.ACTION_SCAN_DEVICES";
     private final OfflineProcessor processor;
-    private final DataCache<MeasurementKey, PhoneBluetoothDevices> bluetoothDevicesTable;
+    private final DataCache<ObservationKey, PhoneBluetoothDevices> bluetoothDevicesTable;
     private BroadcastReceiver bluetoothBroadcastReceiver;
 
     public PhoneBluetoothManager(PhoneBluetoothService service) {

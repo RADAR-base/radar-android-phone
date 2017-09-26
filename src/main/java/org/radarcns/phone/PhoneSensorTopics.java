@@ -17,7 +17,13 @@
 package org.radarcns.phone;
 
 import org.radarcns.android.device.DeviceTopics;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.phone.PhoneAcceleration;
+import org.radarcns.passive.phone.PhoneBatteryLevel;
+import org.radarcns.passive.phone.PhoneGyroscope;
+import org.radarcns.passive.phone.PhoneLight;
+import org.radarcns.passive.phone.PhoneMagneticField;
+import org.radarcns.passive.phone.PhoneStepCount;
 import org.radarcns.topic.AvroTopic;
 
 /** Topic manager for topics concerning the Phone sensors. */
@@ -25,12 +31,12 @@ public class PhoneSensorTopics extends DeviceTopics {
     private static final Object syncObject = new Object();
     private static PhoneSensorTopics instance = null;
 
-    private final AvroTopic<MeasurementKey, PhoneAcceleration> accelerationTopic;
-    private final AvroTopic<MeasurementKey, PhoneBatteryLevel> batteryLevelTopic;
-    private final AvroTopic<MeasurementKey, PhoneLight> lightTopic;
-    private final AvroTopic<MeasurementKey, PhoneStepCount> stepCountTopic;
-    private final AvroTopic<MeasurementKey, PhoneGyroscope> gyroscopeTopic;
-    private final AvroTopic<MeasurementKey, PhoneMagneticField> magneticFieldTopic;
+    private final AvroTopic<ObservationKey, PhoneAcceleration> accelerationTopic;
+    private final AvroTopic<ObservationKey, PhoneBatteryLevel> batteryLevelTopic;
+    private final AvroTopic<ObservationKey, PhoneLight> lightTopic;
+    private final AvroTopic<ObservationKey, PhoneStepCount> stepCountTopic;
+    private final AvroTopic<ObservationKey, PhoneGyroscope> gyroscopeTopic;
+    private final AvroTopic<ObservationKey, PhoneMagneticField> magneticFieldTopic;
 
     public static PhoneSensorTopics getInstance() {
         synchronized (syncObject) {
@@ -62,27 +68,27 @@ public class PhoneSensorTopics extends DeviceTopics {
                 PhoneMagneticField.class);
     }
 
-    public AvroTopic<MeasurementKey, PhoneAcceleration> getAccelerationTopic() {
+    public AvroTopic<ObservationKey, PhoneAcceleration> getAccelerationTopic() {
         return accelerationTopic;
     }
 
-    public AvroTopic<MeasurementKey, PhoneBatteryLevel> getBatteryLevelTopic() {
+    public AvroTopic<ObservationKey, PhoneBatteryLevel> getBatteryLevelTopic() {
         return batteryLevelTopic;
     }
 
-    public AvroTopic<MeasurementKey, PhoneLight> getLightTopic() {
+    public AvroTopic<ObservationKey, PhoneLight> getLightTopic() {
         return lightTopic;
     }
 
-    public AvroTopic<MeasurementKey, PhoneStepCount> getStepCountTopic() {
+    public AvroTopic<ObservationKey, PhoneStepCount> getStepCountTopic() {
         return stepCountTopic;
     }
 
-    public AvroTopic<MeasurementKey, PhoneGyroscope> getGyroscopeTopic() {
+    public AvroTopic<ObservationKey, PhoneGyroscope> getGyroscopeTopic() {
         return gyroscopeTopic;
     }
 
-    public AvroTopic<MeasurementKey, PhoneMagneticField> getMagneticFieldTopic() {
+    public AvroTopic<ObservationKey, PhoneMagneticField> getMagneticFieldTopic() {
         return magneticFieldTopic;
     }
 }

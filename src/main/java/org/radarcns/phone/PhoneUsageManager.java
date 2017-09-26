@@ -26,7 +26,11 @@ import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.phone.PhoneInteractionState;
+import org.radarcns.passive.phone.PhoneUsageEvent;
+import org.radarcns.passive.phone.PhoneUserInteraction;
+import org.radarcns.passive.phone.UsageEventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,9 +47,10 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         EVENT_TYPES.append(UsageEvents.Event.MOVE_TO_FOREGROUND, UsageEventType.FOREGROUND);
         EVENT_TYPES.append(UsageEvents.Event.MOVE_TO_BACKGROUND, UsageEventType.BACKGROUND);
         EVENT_TYPES.append(UsageEvents.Event.CONFIGURATION_CHANGE, UsageEventType.CONFIG);
-        EVENT_TYPES.append(UsageEvents.Event.NONE, UsageEventType.UNKNOWN);
         if (android.os.Build.VERSION.SDK_INT >= 25) {
             EVENT_TYPES.append(UsageEvents.Event.SHORTCUT_INVOCATION, UsageEventType.SHORTCUT);
+        }
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
             EVENT_TYPES.append(UsageEvents.Event.USER_INTERACTION, UsageEventType.INTERACTION);
         }
     }
@@ -58,8 +63,8 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     private static final String ACTION_UPDATE_EVENTS = "org.radarcns.phone.PhoneUsageManager.ACTION_UPDATE_EVENTS";
     private static final int USAGE_EVENT_REQUEST_CODE = 586106;
 
-    private final DataCache<MeasurementKey, PhoneUsageEvent> usageEventTable;
-    private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
+    private final DataCache<ObservationKey, PhoneUsageEvent> usageEventTable;
+    private final DataCache<ObservationKey, PhoneUserInteraction> userInteractionTable;
 
     private final BroadcastReceiver phoneStateReceiver;
 
@@ -205,7 +210,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
 
     private void sendLastEvent() {
         // Event type conversion to Schema defined
-        UsageEventType usageEventType = EVENT_TYPES.get(lastEventType, UsageEventType.UNKNOWN);
+        UsageEventType usageEventType = EVENT_TYPES.get(lastEventType, UsageEventType.OTHER);
 
         double time = lastTimestamp / 1000d;
         double timeReceived = System.currentTimeMillis() / 1000d;

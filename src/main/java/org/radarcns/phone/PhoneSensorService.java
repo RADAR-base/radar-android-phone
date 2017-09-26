@@ -25,7 +25,7 @@ import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
 import org.radarcns.topic.AvroTopic;
 
 import java.util.Arrays;
@@ -75,8 +75,8 @@ public class PhoneSensorService extends DeviceService {
     }
 
     @Override
-    protected List<AvroTopic<MeasurementKey, ? extends SpecificRecord>> getCachedTopics() {
-        return Arrays.<AvroTopic<MeasurementKey, ? extends SpecificRecord>>asList(
+    protected List<AvroTopic<ObservationKey, ? extends SpecificRecord>> getCachedTopics() {
+        return Arrays.<AvroTopic<ObservationKey, ? extends SpecificRecord>>asList(
                 PHONE_SENSOR_TOPICS.getAccelerationTopic(),
                 PHONE_SENSOR_TOPICS.getLightTopic(),
                 PHONE_SENSOR_TOPICS.getGyroscopeTopic(),

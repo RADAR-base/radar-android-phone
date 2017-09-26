@@ -34,7 +34,9 @@ import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
 import org.radarcns.android.util.BatteryLevelReceiver;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.phone.LocationProvider;
+import org.radarcns.passive.phone.PhoneRelativeLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +66,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         PROVIDER_TYPES.put(LocationManager.NETWORK_PROVIDER, LocationProvider.NETWORK);
     }
 
-    private final DataCache<MeasurementKey, PhoneRelativeLocation> locationTable;
+    private final DataCache<ObservationKey, PhoneRelativeLocation> locationTable;
     private final LocationManager locationManager;
     private final BatteryLevelReceiver batteryLevelReceiver;
     private final SharedPreferences preferences;
