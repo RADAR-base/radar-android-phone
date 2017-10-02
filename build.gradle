@@ -66,24 +66,20 @@ ext.website = 'http://radar-cns.org'
 // Sources and classpath configurations                                      //
 //---------------------------------------------------------------------------//
 
+configurations.compile {
+    resolutionStrategy.cacheChangingModulesFor 0, 'SECONDS'
+}
+
 repositories {
     jcenter()
-    flatDir { dirs 'libs' }
+    maven { url 'https://oss.jfrog.org/artifactory/oss-snapshot-local' }
 }
 
 dependencies {
-    compile 'org.radarcns:radar-commons-android:0.3-SNAPSHOT@aar'
-    compile 'org.radarcns:radar-schemas-commons:0.2-alpha.3-SNAPSHOT@jar'
+    compile 'org.radarcns:radar-commons-android:0.3-SNAPSHOT'
+    compile 'org.radarcns:radar-schemas-commons:0.2-alpha.3-SNAPSHOT'
 
     compile 'com.android.support:support-annotations:25.3.1'
-    // tmp
-    compile 'com.squareup.okhttp3:okhttp:3.6.0'
-    compile 'org.apache.avro:avro:1.8.2'
-    compile ('org.radarcns:radar-commons:0.6-SNAPSHOT') {
-        exclude group: 'io.confluent', module: 'kafka-avro-serializer'
-        exclude group: 'org.apache.kafka', module: 'kafka-clients'
-        exclude group: 'com.fasterxml.jackson.dataformat', module: 'jackson-dataformat-yaml'
-    }
 
     testCompile 'junit:junit:4.12'
     testCompile 'org.slf4j:slf4j-simple:1.7.21'
@@ -122,7 +118,7 @@ artifacts {
     archives sourcesJar
 }
 
-def pomConfig = {
+ext.pomConfig = {
     licenses {
         license {
             name "The Apache Software License, Version 2.0"
