@@ -17,6 +17,7 @@
 package org.radarcns.phone;
 
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.DeviceServiceProvider;
 
@@ -31,6 +32,8 @@ public class PhoneSensorProvider extends DeviceServiceProvider<PhoneState> {
     static final String PHONE_SENSOR_STEP_COUNT_INTERVAL = "phone_sensor_steps_interval";
     static final String PHONE_SENSOR_ACCELERATION_INTERVAL = "phone_sensor_acceleration_interval";
     static final String PHONE_SENSOR_LIGHT_INTERVAL = "phone_sensor_light_interval";
+    public static final String DEVICE_PRODUCER = "ANDROID";
+    public static final String DEVICE_MODEL = "PHONE";
 
     @Override
     public Class<?> getServiceClass() {
@@ -58,5 +61,23 @@ public class PhoneSensorProvider extends DeviceServiceProvider<PhoneState> {
     @Override
     public List<String> needsPermissions() {
         return Collections.emptyList();
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceProducer() {
+        return DEVICE_PRODUCER;
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceModel() {
+        return DEVICE_MODEL;
+    }
+
+    @NonNull
+    @Override
+    public String getVersion() {
+        return BuildConfig.VERSION_NAME;
     }
 }

@@ -17,6 +17,7 @@
 package org.radarcns.phone;
 
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
@@ -26,6 +27,8 @@ import java.util.List;
 
 import static android.Manifest.permission.READ_CALL_LOG;
 import static android.Manifest.permission.READ_SMS;
+import static org.radarcns.phone.PhoneSensorProvider.DEVICE_MODEL;
+import static org.radarcns.phone.PhoneSensorProvider.DEVICE_PRODUCER;
 
 public class PhoneLogProvider extends DeviceServiceProvider<BaseDeviceState> {
     private static final String PREFIX = PhoneLogProvider.class.getName() + '.';
@@ -58,5 +61,23 @@ public class PhoneLogProvider extends DeviceServiceProvider<BaseDeviceState> {
     @Override
     public boolean isDisplayable() {
         return false;
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceProducer() {
+        return DEVICE_PRODUCER;
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceModel() {
+        return DEVICE_MODEL;
+    }
+
+    @NonNull
+    @Override
+    public String getVersion() {
+        return BuildConfig.VERSION_NAME;
     }
 }

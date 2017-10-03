@@ -32,11 +32,8 @@ import android.support.annotation.NonNull;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
 import org.radarcns.android.data.DataCache;
-import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
-import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceStatusListener;
-import org.radarcns.android.util.AndroidThreadFactory;
 import org.radarcns.kafka.ObservationKey;
 import org.radarcns.passive.phone.BatteryStatus;
 import org.radarcns.passive.phone.PhoneAcceleration;
@@ -53,11 +50,15 @@ import java.io.IOException;
 import java.util.Set;
 
 import static android.content.Context.POWER_SERVICE;
-import static android.os.BatteryManager.*;
+import static android.os.BatteryManager.BATTERY_STATUS_CHARGING;
+import static android.os.BatteryManager.BATTERY_STATUS_DISCHARGING;
+import static android.os.BatteryManager.BATTERY_STATUS_FULL;
+import static android.os.BatteryManager.BATTERY_STATUS_NOT_CHARGING;
+import static android.os.BatteryManager.BATTERY_STATUS_UNKNOWN;
 import static android.os.Process.THREAD_PRIORITY_BACKGROUND;
 import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_INTERVAL_DEFAULT;
 
-class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, PhoneState> implements DeviceManager, SensorEventListener {
+class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, PhoneState> implements SensorEventListener {
     private static final Logger logger = LoggerFactory.getLogger(PhoneSensorManager.class);
 
     // Sensors to register, together with the name of the sensor
@@ -103,14 +104,14 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     private PowerManager.WakeLock wakeLock;
     private Handler mHandler;
 
-    public PhoneSensorManager(PhoneSensorService context, TableDataHandler dataHandler, String groupId, String sourceId) {
-        super(context, new PhoneState(), dataHandler, groupId, sourceId);
+    public PhoneSensorManager(PhoneSensorService context) {
+        super(context);
         PhoneSensorTopics topics = PhoneSensorTopics.getInstance();
-        this.accelerationTable = dataHandler.getCache(topics.getAccelerationTopic());
-        this.lightTable = dataHandler.getCache(topics.getLightTopic());
-        this.stepCountTable = dataHandler.getCache(topics.getStepCountTopic());
-        this.gyroscopeTable = dataHandler.getCache(topics.getGyroscopeTopic());
-        this.magneticFieldTable = dataHandler.getCache(topics.getMagneticFieldTopic());
+        this.accelerationTable = getCache(topics.getAccelerationTopic());
+        this.lightTable = getCache(topics.getLightTopic());
+        this.stepCountTable = getCache(topics.getStepCountTopic());
+        this.gyroscopeTable = getCache(topics.getGyroscopeTopic());
+        this.magneticFieldTable = getCache(topics.getMagneticFieldTopic());
         this.sensorDelays = new SparseIntArray();
         this.batteryTopic = topics.getBatteryLevelTopic();
 

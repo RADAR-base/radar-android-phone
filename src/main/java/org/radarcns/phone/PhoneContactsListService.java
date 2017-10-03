@@ -26,12 +26,12 @@ import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
 import static org.radarcns.phone.PhoneContactListProvider.PHONE_CONTACTS_LIST_INTERVAL_DEFAULT;
 import static org.radarcns.phone.PhoneContactListProvider.PHONE_CONTACTS_LIST_INTERVAL_KEY;
 
-public class PhoneContactsListService extends DeviceService {
+public class PhoneContactsListService extends DeviceService<BaseDeviceState> {
     private volatile String sourceId;
     private volatile long checkInterval = PHONE_CONTACTS_LIST_INTERVAL_DEFAULT;
 
     @Override
-    protected DeviceManager createDeviceManager() {
+    protected PhoneContactListManager createDeviceManager() {
         return new PhoneContactListManager(this);
     }
 

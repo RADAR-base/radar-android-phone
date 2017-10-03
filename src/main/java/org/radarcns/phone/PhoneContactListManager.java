@@ -47,7 +47,7 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
     private Set<String> savedContactIds;
 
     public PhoneContactListManager(PhoneContactsListService service) {
-        super(service, service.getDefaultState(), service.getDataHandler(), service.getUserId(), service.getSourceId());
+        super(service);
 
         preferences = service.getSharedPreferences(PhoneContactListManager.class.getName(), Context.MODE_PRIVATE);
         contactsTable = getCache(service.getTopics().getContactListTopic());
@@ -76,7 +76,6 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
 
         Integer added = null;
         Integer removed = null;
-
 
         if (savedContactIds != null) {
             added = Sets.difference(newContactIds, savedContactIds).size();

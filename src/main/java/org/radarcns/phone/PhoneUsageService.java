@@ -17,28 +17,21 @@
 package org.radarcns.phone;
 
 import android.os.Bundle;
-import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
-import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
-import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
 import static org.radarcns.phone.PhoneUsageProvider.PHONE_USAGE_INTERVAL_KEY;
 
 /**
  * A service that manages the phone sensor manager and a TableDataHandler to send store the data of
  * the phone sensors and send it to a Kafka REST proxy.
  */
-public class PhoneUsageService extends DeviceService {
-    private String sourceId;
+public class PhoneUsageService extends DeviceService<BaseDeviceState> {
     private long usageEventInterval;
 
     @Override
-    protected DeviceManager createDeviceManager() {
-        if (sourceId == null) {
-            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
-        }
-        return new PhoneUsageManager(this, getDataHandler(), getUserId(), sourceId, usageEventInterval);
+    protected PhoneUsageManager createDeviceManager() {
+        return new PhoneUsageManager(this, usageEventInterval);
     }
 
     @Override

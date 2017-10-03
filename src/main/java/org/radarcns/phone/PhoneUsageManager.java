@@ -77,13 +77,12 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     private int lastEventType;
     private boolean lastEventIsSent;
 
-    public PhoneUsageManager(PhoneUsageService context, TableDataHandler dataHandler, String groupId, String sourceId,
-                             long usageEventInterval) {
-        super(context, new BaseDeviceState(), dataHandler, groupId, sourceId);
+    public PhoneUsageManager(PhoneUsageService context, long usageEventInterval) {
+        super(context);
 
-        PhoneUsageTopics topics = PhoneUsageTopics.getInstance();
-        this.usageEventTable = dataHandler.getCache(topics.getUsageEventTopic());
-        this.userInteractionTable = dataHandler.getCache(topics.getUserInteractionTopic());
+        PhoneUsageTopics topics = context.getTopics();
+        this.usageEventTable = getCache(topics.getUsageEventTopic());
+        this.userInteractionTable = getCache(topics.getUserInteractionTopic());
 
         this.usageStatsManager = (UsageStatsManager) context.getSystemService("usagestats");
         this.preferences = context.getSharedPreferences(PhoneUsageService.class.getName(), Context.MODE_PRIVATE);

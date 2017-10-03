@@ -17,24 +17,17 @@
 package org.radarcns.phone;
 
 import android.os.Bundle;
-import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
-import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
-import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
 import static org.radarcns.phone.PhoneLogProvider.CALL_SMS_LOG_INTERVAL_KEY;
 
-public class PhoneLogService extends DeviceService {
-    private String sourceId;
+public class PhoneLogService extends DeviceService<BaseDeviceState> {
     private long logInterval;
 
     @Override
-    protected DeviceManager createDeviceManager() {
-        if (sourceId == null) {
-            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
-        }
-        return new PhoneLogManager(this, getDataHandler(), getUserId(), sourceId, logInterval);
+    protected PhoneLogManager createDeviceManager() {
+        return new PhoneLogManager(this, logInterval);
     }
 
     @Override

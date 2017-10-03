@@ -17,6 +17,7 @@
 package org.radarcns.phone;
 
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
@@ -26,6 +27,8 @@ import java.util.List;
 
 import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static org.radarcns.phone.PhoneSensorProvider.DEVICE_MODEL;
+import static org.radarcns.phone.PhoneSensorProvider.DEVICE_PRODUCER;
 
 public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState> {
     private static final String PHONE_LOCATION_GPS_INTERVAL = "phone_location_gps_interval";
@@ -82,5 +85,23 @@ public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState
     @Override
     public boolean isDisplayable() {
         return false;
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceProducer() {
+        return DEVICE_PRODUCER;
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceModel() {
+        return DEVICE_MODEL;
+    }
+
+    @NonNull
+    @Override
+    public String getVersion() {
+        return BuildConfig.VERSION_NAME;
     }
 }

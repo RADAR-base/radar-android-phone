@@ -18,6 +18,7 @@ package org.radarcns.phone;
 
 import android.Manifest;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
@@ -25,6 +26,9 @@ import org.radarcns.android.device.DeviceServiceProvider;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static org.radarcns.phone.PhoneSensorProvider.DEVICE_MODEL;
+import static org.radarcns.phone.PhoneSensorProvider.DEVICE_PRODUCER;
 
 public class PhoneContactListProvider extends DeviceServiceProvider<BaseDeviceState> {
     private static final String PHONE_PREFIX = "org.radarcns.phone.";
@@ -53,5 +57,23 @@ public class PhoneContactListProvider extends DeviceServiceProvider<BaseDeviceSt
         RadarConfiguration config = getConfig();
         bundle.putLong(PHONE_CONTACTS_LIST_INTERVAL_KEY, config.getLong(
                 PHONE_CONTACTS_LIST_INTERVAL, PHONE_CONTACTS_LIST_INTERVAL_DEFAULT));
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceProducer() {
+        return DEVICE_PRODUCER;
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceModel() {
+        return DEVICE_MODEL;
+    }
+
+    @NonNull
+    @Override
+    public String getVersion() {
+        return BuildConfig.VERSION_NAME;
     }
 }

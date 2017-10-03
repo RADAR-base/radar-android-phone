@@ -18,12 +18,16 @@ package org.radarcns.phone;
 
 import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
 
 import java.util.Collections;
 import java.util.List;
+
+import static org.radarcns.phone.PhoneSensorProvider.DEVICE_MODEL;
+import static org.radarcns.phone.PhoneSensorProvider.DEVICE_PRODUCER;
 
 public class PhoneUsageProvider extends DeviceServiceProvider<BaseDeviceState> {
     private static final String PHONE_PREFIX = "org.radarcns.phone.";
@@ -49,6 +53,24 @@ public class PhoneUsageProvider extends DeviceServiceProvider<BaseDeviceState> {
         } else {
             return Collections.emptyList();
         }
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceProducer() {
+        return DEVICE_PRODUCER;
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceModel() {
+        return DEVICE_MODEL;
+    }
+
+    @NonNull
+    @Override
+    public String getVersion() {
+        return BuildConfig.VERSION_NAME;
     }
 
     @Override

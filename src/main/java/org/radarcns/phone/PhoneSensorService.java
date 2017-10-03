@@ -19,11 +19,7 @@ package org.radarcns.phone;
 import android.hardware.Sensor;
 import android.os.Bundle;
 import android.util.SparseIntArray;
-
 import org.apache.avro.specific.SpecificRecord;
-import org.radarcns.android.RadarConfiguration;
-import org.radarcns.android.device.BaseDeviceState;
-import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 import org.radarcns.kafka.ObservationKey;
 import org.radarcns.topic.AvroTopic;
@@ -31,7 +27,6 @@ import org.radarcns.topic.AvroTopic;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
 import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_ACCELERATION_INTERVAL;
 import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_GYROSCOPE_INTERVAL;
 import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_LIGHT_INTERVAL;
@@ -42,8 +37,7 @@ import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_STEP_COUNT_INT
  * A service that manages the phone sensor manager and a TableDataHandler to send store the data of
  * the phone sensors and send it to a Kafka REST proxy.
  */
-public class PhoneSensorService extends DeviceService {
-    private String sourceId;
+public class PhoneSensorService extends DeviceService<PhoneState> {
     private static final PhoneSensorTopics PHONE_SENSOR_TOPICS = PhoneSensorTopics.getInstance();
     private SparseIntArray sensorDelays;
 
@@ -54,12 +48,8 @@ public class PhoneSensorService extends DeviceService {
     }
 
     @Override
-    protected DeviceManager createDeviceManager() {
-        if (sourceId == null) {
-            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
-        }
-        PhoneSensorManager manager = new PhoneSensorManager(this, getDataHandler(),
-                getUserId(), sourceId);
+    protected PhoneSensorManager createDeviceManager() {
+        PhoneSensorManager manager = new PhoneSensorManager(this);
         manager.setSensorDelays(sensorDelays);
         return manager;
     }

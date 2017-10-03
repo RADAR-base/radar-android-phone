@@ -26,10 +26,8 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
 import android.support.annotation.NonNull;
-
 import android.support.annotation.Nullable;
 import org.radarcns.android.data.DataCache;
-import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
@@ -84,9 +82,10 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
     private int networkIntervalReduced;
     private boolean isStarted;
 
-    public PhoneLocationManager(PhoneLocationService context, TableDataHandler dataHandler, String groupId, String sourceId) {
-        super(context, new BaseDeviceState(), dataHandler, groupId, sourceId);
-        this.locationTable = dataHandler.getCache(PhoneLocationTopics.getInstance().getRelativeLocationTopic());
+    public PhoneLocationManager(PhoneLocationService context) {
+        super(context);
+        PhoneLocationTopics topics = context.getTopics();
+        this.locationTable = getCache(topics.getRelativeLocationTopic());
 
         locationManager = (LocationManager) getService().getSystemService(Context.LOCATION_SERVICE);
         this.handlerThread = new HandlerThread("PhoneLocation", Process.THREAD_PRIORITY_BACKGROUND);

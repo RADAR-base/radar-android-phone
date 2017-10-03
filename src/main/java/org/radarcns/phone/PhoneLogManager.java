@@ -25,7 +25,6 @@ import android.provider.Telephony;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
 import org.radarcns.android.data.DataCache;
-import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
@@ -82,23 +81,23 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     private long lastSmsTimestamp;
     private long lastCallTimestamp;
 
-    public PhoneLogManager(PhoneLogService phoneLogService, TableDataHandler dataHandler, String userId,
-                           String sourceId, long logInterval) {
-        super(phoneLogService, new BaseDeviceState(), dataHandler, userId, sourceId);
-        callTable = getCache(phoneLogService.getTopics().getCallTopic());
-        smsTable = getCache(phoneLogService.getTopics().getSmsTopic());
-        smsUnreadTable = getCache(phoneLogService.getTopics().getSmsUnreadTopic());
+    public PhoneLogManager(PhoneLogService context, long logInterval) {
+        super(context);
+        PhoneLogTopics topics = context.getTopics();
+        callTable = getCache(topics.getCallTopic());
+        smsTable = getCache(topics.getSmsTopic());
+        smsUnreadTable = getCache(topics.getSmsUnreadTopic());
 
-        preferences = phoneLogService.getSharedPreferences(PhoneLogService.class.getName(), Context.MODE_PRIVATE);
+        preferences = context.getSharedPreferences(PhoneLogService.class.getName(), Context.MODE_PRIVATE);
         lastCallTimestamp = preferences.getLong(LAST_CALL_KEY, System.currentTimeMillis());
         lastSmsTimestamp = preferences.getLong(LAST_SMS_KEY, System.currentTimeMillis());
         db = getService().getContentResolver();
 
         hashGenerator = new HashGenerator(preferences);
-        logProcessor = new OfflineProcessor(phoneLogService, this, REQUEST_CODE_PENDING_INTENT,
+        logProcessor = new OfflineProcessor(context, this, REQUEST_CODE_PENDING_INTENT,
                 ACTIVITY_LAUNCH_WAKE, logInterval, false);
 
-        setName(String.format(phoneLogService.getString(R.string.call_log_service_name), android.os.Build.MODEL));
+        setName(String.format(context.getString(R.string.call_log_service_name), android.os.Build.MODEL));
     }
 
     public void start(@NonNull Set<String> acceptableIds) {

@@ -26,12 +26,12 @@ import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
 import static org.radarcns.phone.PhoneBluetoothProvider.BLUETOOTH_DEVICES_SCAN_INTERVAL_DEFAULT;
 import static org.radarcns.phone.PhoneBluetoothProvider.PHONE_BLUETOOTH_DEVICES_SCAN_INTERVAL_KEY;
 
-public class PhoneBluetoothService extends DeviceService {
+public class PhoneBluetoothService extends DeviceService<BaseDeviceState> {
     private volatile String sourceId;
     private long checkInterval = BLUETOOTH_DEVICES_SCAN_INTERVAL_DEFAULT;
 
     @Override
-    protected DeviceManager createDeviceManager() {
+    protected PhoneBluetoothManager createDeviceManager() {
         return new PhoneBluetoothManager(this);
     }
 

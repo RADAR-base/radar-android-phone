@@ -17,17 +17,18 @@
 package org.radarcns.phone;
 
 import android.os.Bundle;
-
-import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
-import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
-import static org.radarcns.phone.PhoneLocationProvider.*;
+import static org.radarcns.phone.PhoneLocationProvider.INTERVAL_GPS_KEY;
+import static org.radarcns.phone.PhoneLocationProvider.INTERVAL_GPS_REDUCED_KEY;
+import static org.radarcns.phone.PhoneLocationProvider.INTERVAL_NETWORK_KEY;
+import static org.radarcns.phone.PhoneLocationProvider.INTERVAL_NETWORK_REDUCED_KEY;
+import static org.radarcns.phone.PhoneLocationProvider.MINIMUM_BATTERY_LEVEL_KEY;
+import static org.radarcns.phone.PhoneLocationProvider.REDUCED_BATTERY_LEVEL_KEY;
 
-public class PhoneLocationService extends DeviceService {
-    private String sourceId;
+public class PhoneLocationService extends DeviceService<BaseDeviceState> {
     private int gpsInterval;
     private int gpsIntervalReduced;
     private int networkInterval;
@@ -36,11 +37,8 @@ public class PhoneLocationService extends DeviceService {
     private float batteryLevelReduced;
 
     @Override
-    protected DeviceManager createDeviceManager() {
-        if (sourceId == null) {
-            sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
-        }
-        PhoneLocationManager manager = new PhoneLocationManager(this, getDataHandler(), getUserId(), sourceId);
+    protected PhoneLocationManager createDeviceManager() {
+        PhoneLocationManager manager = new PhoneLocationManager(this);
         configureManager(manager);
         return manager;
     }
