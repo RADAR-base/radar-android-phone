@@ -110,6 +110,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
 
     @Override
     public void start(@NonNull final Set<String> acceptableIds) {
+        updateStatus(DeviceStatusListener.Status.READY);
         // Start query of usage events
         phoneUsageProcessor.start();
 

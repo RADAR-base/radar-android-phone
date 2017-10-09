@@ -49,6 +49,12 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
         bluetoothDevicesTable =  getCache(service.getTopics().getBluetoothDevicesTopic());
     }
 
+    @Override
+    public void start(@NonNull Set<String> set) {
+        updateStatus(DeviceStatusListener.Status.READY);
+        processor.start();
+        updateStatus(DeviceStatusListener.Status.CONNECTED);
+    }
 
     @Override
     public void run() {
@@ -97,12 +103,6 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
 
         getService().registerReceiver(bluetoothBroadcastReceiver, filter);
         bluetoothAdapter.startDiscovery();
-    }
-
-    @Override
-    public void start(@NonNull Set<String> set) {
-        processor.start();
-        updateStatus(DeviceStatusListener.Status.CONNECTED);
     }
 
     @Override

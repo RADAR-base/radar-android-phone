@@ -136,6 +136,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
     @Override
     public void start(@NonNull final Set<String> acceptableIds) {
+        updateStatus(DeviceStatusListener.Status.READY);
         PowerManager powerManager = (PowerManager) getService().getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                 "PhoneSensorManager");

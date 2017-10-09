@@ -101,6 +101,8 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     }
 
     public void start(@NonNull Set<String> acceptableIds) {
+        updateStatus(DeviceStatusListener.Status.READY);
+
         // Calls and sms, in and outgoing and number of unread sms
         logProcessor.start();
 

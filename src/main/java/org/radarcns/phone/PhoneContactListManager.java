@@ -58,6 +58,8 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
 
     @Override
     public void start(@NonNull Set<String> set) {
+        updateStatus(DeviceStatusListener.Status.READY);
+
         savedContactIds = preferences.getStringSet(CONTACT_IDS, Collections.<String>emptySet());
         processor.start();
 

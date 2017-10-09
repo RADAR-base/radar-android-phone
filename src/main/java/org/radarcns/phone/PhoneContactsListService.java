@@ -27,7 +27,6 @@ import static org.radarcns.phone.PhoneContactListProvider.PHONE_CONTACTS_LIST_IN
 import static org.radarcns.phone.PhoneContactListProvider.PHONE_CONTACTS_LIST_INTERVAL_KEY;
 
 public class PhoneContactsListService extends DeviceService<BaseDeviceState> {
-    private volatile String sourceId;
     private volatile long checkInterval = PHONE_CONTACTS_LIST_INTERVAL_DEFAULT;
 
     @Override
@@ -43,17 +42,6 @@ public class PhoneContactsListService extends DeviceService<BaseDeviceState> {
     @Override
     protected PhoneContactListTopics getTopics() {
         return PhoneContactListTopics.getInstance();
-    }
-
-    public String getSourceId() {
-        if (sourceId == null) {
-            synchronized (this) {
-                if (sourceId == null) {
-                    sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
-                }
-            }
-        }
-        return sourceId;
     }
 
     public long getCheckInterval() {

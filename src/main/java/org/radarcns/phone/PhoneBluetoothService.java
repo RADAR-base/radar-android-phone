@@ -27,7 +27,6 @@ import static org.radarcns.phone.PhoneBluetoothProvider.BLUETOOTH_DEVICES_SCAN_I
 import static org.radarcns.phone.PhoneBluetoothProvider.PHONE_BLUETOOTH_DEVICES_SCAN_INTERVAL_KEY;
 
 public class PhoneBluetoothService extends DeviceService<BaseDeviceState> {
-    private volatile String sourceId;
     private long checkInterval = BLUETOOTH_DEVICES_SCAN_INTERVAL_DEFAULT;
 
     @Override
@@ -43,17 +42,6 @@ public class PhoneBluetoothService extends DeviceService<BaseDeviceState> {
     @Override
     protected PhoneBluetoothTopics getTopics() {
         return PhoneBluetoothTopics.getInstance();
-    }
-
-    String getSourceId() {
-        if (sourceId == null) {
-            synchronized (this) {
-                if (sourceId == null) {
-                    sourceId = RadarConfiguration.getOrSetUUID(getApplicationContext(), SOURCE_ID_KEY);
-                }
-            }
-        }
-        return sourceId;
     }
 
     public long getCheckInterval() {
