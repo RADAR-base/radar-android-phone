@@ -54,4 +54,9 @@ public class PhoneUsageService extends DeviceService<BaseDeviceState> {
             manager.setUsageEventUpdateRate(usageEventInterval);
         }
     }
+
+    @Override
+    protected boolean isBluetoothConnectionRequired() {
+        return false;
+    }
 }

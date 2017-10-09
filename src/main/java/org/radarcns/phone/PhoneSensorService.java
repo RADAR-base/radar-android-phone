@@ -88,4 +88,9 @@ public class PhoneSensorService extends DeviceService<PhoneState> {
             manager.setSensorDelays(sensorDelays);
         }
     }
+
+    @Override
+    protected boolean isBluetoothConnectionRequired() {
+        return false;
+    }
 }
