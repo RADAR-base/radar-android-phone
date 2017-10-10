@@ -55,7 +55,7 @@ android {
 group = 'org.radarcns'
 ext.moduleName = 'radar-android-phone'
 ext.moduleDescription = 'Basic phone sensor plugin for RADAR passive remote monitoring app'
-ext.githubRepoName = 'RADAR-CNS/RADAR-Android-Phone'
+ext.githubRepoName = 'RADAR-CNS/radar-android-phone'
 version = android.defaultConfig.versionName
 
 ext.githubUrl = 'https://github.com/' + githubRepoName + '.git'

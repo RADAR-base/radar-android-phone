@@ -22,7 +22,6 @@ import android.content.*;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
 import org.radarcns.android.data.DataCache;
-import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;

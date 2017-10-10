@@ -55,6 +55,11 @@ public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState
     private static final float REDUCED_BATTERY_LEVEL_DEFAULT = 0.3f;
 
     @Override
+    public String getDescription() {
+        return getActivity().getString(R.string.phone_location_description);
+    }
+
+    @Override
     public Class<?> getServiceClass() {
         return PhoneLocationService.class;
     }

@@ -37,6 +37,11 @@ public class PhoneContactListProvider extends DeviceServiceProvider<BaseDeviceSt
     public static final long PHONE_CONTACTS_LIST_INTERVAL_DEFAULT = TimeUnit.DAYS.toSeconds(1);
 
     @Override
+    public String getDescription() {
+        return getActivity().getString(R.string.phone_contact_list_description);
+    }
+
+    @Override
     public Class<?> getServiceClass() {
         return PhoneContactsListService.class;
     }

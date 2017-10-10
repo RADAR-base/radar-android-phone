@@ -37,6 +37,11 @@ public class PhoneUsageProvider extends DeviceServiceProvider<BaseDeviceState> {
     public static final String PHONE_USAGE_INTERVAL_KEY = PHONE_PREFIX + PHONE_USAGE_INTERVAL;
 
     @Override
+    public String getDescription() {
+        return getActivity().getString(R.string.phone_usage_description);
+    }
+
+    @Override
     public Class<?> getServiceClass() {
         return PhoneUsageService.class;
     }

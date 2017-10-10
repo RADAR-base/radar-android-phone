@@ -37,6 +37,11 @@ public class PhoneBluetoothProvider extends DeviceServiceProvider<BaseDeviceStat
     public static final long BLUETOOTH_DEVICES_SCAN_INTERVAL_DEFAULT = TimeUnit.HOURS.toSeconds(1);
 
     @Override
+    public String getDescription() {
+        return getActivity().getString(R.string.phone_bluetooth_description);
+    }
+
+    @Override
     public Class<?> getServiceClass() {
         return PhoneBluetoothService.class;
     }

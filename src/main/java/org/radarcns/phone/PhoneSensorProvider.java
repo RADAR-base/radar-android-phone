@@ -36,6 +36,11 @@ public class PhoneSensorProvider extends DeviceServiceProvider<PhoneState> {
     public static final String DEVICE_MODEL = "PHONE";
 
     @Override
+    public String getDescription() {
+        return getActivity().getString(R.string.phone_sensors_description);
+    }
+
+    @Override
     public Class<?> getServiceClass() {
         return PhoneSensorService.class;
     }
