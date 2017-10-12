@@ -337,4 +337,9 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         mHandlerThread.quitSafely();
         super.close();
     }
+
+    @Override
+    protected void registerDeviceAtReady() {
+        // custom registration
+    }
 }
