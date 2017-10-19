@@ -49,4 +49,9 @@ public class PhoneLogService extends DeviceService<BaseDeviceState> {
             deviceManager.setCallAndSmsLogUpdateRate(logInterval);
         }
     }
+
+    @Override
+    protected boolean isBluetoothConnectionRequired() {
+        return false;
+    }
 }

@@ -72,4 +72,9 @@ public class PhoneLocationService extends DeviceService<BaseDeviceState> {
             configureManager((PhoneLocationManager) getDeviceManager());
         }
     }
+
+    @Override
+    protected boolean isBluetoothConnectionRequired() {
+        return false;
+    }
 }

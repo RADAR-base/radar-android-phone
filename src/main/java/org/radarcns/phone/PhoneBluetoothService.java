@@ -58,4 +58,9 @@ public class PhoneBluetoothService extends DeviceService<BaseDeviceState> {
             manager.setCheckInterval(checkInterval);
         }
     }
+
+    @Override
+    protected boolean isBluetoothConnectionRequired() {
+        return false;
+    }
 }
