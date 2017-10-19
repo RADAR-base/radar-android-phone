@@ -24,7 +24,6 @@ import android.provider.CallLog;
 import android.provider.Telephony;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
-import org.radarcns.android.data.DataCache;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
@@ -36,6 +35,7 @@ import org.radarcns.passive.phone.PhoneCallType;
 import org.radarcns.passive.phone.PhoneSms;
 import org.radarcns.passive.phone.PhoneSmsType;
 import org.radarcns.passive.phone.PhoneSmsUnread;
+import org.radarcns.topic.AvroTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,9 +72,9 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         SMS_TYPES.append(Telephony.Sms.MESSAGE_TYPE_QUEUED, PhoneSmsType.OTHER);
     }
 
-    private final DataCache<ObservationKey, PhoneCall> callTable;
-    private final DataCache<ObservationKey, PhoneSms> smsTable;
-    private final DataCache<ObservationKey, PhoneSmsUnread> smsUnreadTable;
+    private final AvroTopic<ObservationKey, PhoneCall> callTopic;
+    private final AvroTopic<ObservationKey, PhoneSms> smsTopic;
+    private final AvroTopic<ObservationKey, PhoneSmsUnread> smsUnreadTopic;
     private final HashGenerator hashGenerator;
     private final SharedPreferences preferences;
     private final ContentResolver db;
@@ -85,9 +85,9 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     public PhoneLogManager(PhoneLogService context, long logInterval) {
         super(context);
         PhoneLogTopics topics = context.getTopics();
-        callTable = getCache(topics.getCallTopic());
-        smsTable = getCache(topics.getSmsTopic());
-        smsUnreadTable = getCache(topics.getSmsUnreadTopic());
+        callTopic = topics.getCallTopic();
+        smsTopic = topics.getSmsTopic();
+        smsUnreadTopic = topics.getSmsUnreadTopic();
 
         preferences = context.getSharedPreferences(PhoneLogService.class.getName(), Context.MODE_PRIVATE);
         lastCallTimestamp = preferences.getLong(LAST_CALL_KEY, System.currentTimeMillis());
@@ -214,7 +214,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         PhoneCallType type = CALL_TYPES.get(typeCode, PhoneCallType.UNKNOWN);
 
         double timestamp = System.currentTimeMillis() / 1000d;
-        send(callTable,
+        send(callTopic,
                 new PhoneCall(
                         eventTimestamp,
                         timestamp,
@@ -244,7 +244,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         }
 
         double timestamp = System.currentTimeMillis() / 1000d;
-        send(smsTable,
+        send(smsTopic,
                 new PhoneSms(
                         eventTimestamp,
                         timestamp,
@@ -262,9 +262,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
 
     private void sendNumberUnreadSms(int numberUnread) {
         double timestamp = System.currentTimeMillis() / 1000d;
-        send(smsUnreadTable,
-                new PhoneSmsUnread(timestamp, timestamp, numberUnread)
-        );
+        send(smsUnreadTopic, new PhoneSmsUnread(timestamp, timestamp, numberUnread));
 
         logger.info("SMS unread: {} {}", timestamp, numberUnread);
     }

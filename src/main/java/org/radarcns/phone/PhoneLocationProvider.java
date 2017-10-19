@@ -56,7 +56,7 @@ public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState
 
     @Override
     public String getDescription() {
-        return getActivity().getString(R.string.phone_location_description);
+        return getRadarService().getString(R.string.phone_location_description);
     }
 
     @Override
@@ -66,7 +66,7 @@ public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState
 
     @Override
     public String getDisplayName() {
-        return getActivity().getString(R.string.phoneLocationServiceDisplayName);
+        return getRadarService().getString(R.string.phoneLocationServiceDisplayName);
     }
 
     @Override

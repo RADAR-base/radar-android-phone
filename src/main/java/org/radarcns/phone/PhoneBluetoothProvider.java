@@ -38,7 +38,7 @@ public class PhoneBluetoothProvider extends DeviceServiceProvider<BaseDeviceStat
 
     @Override
     public String getDescription() {
-        return getActivity().getString(R.string.phone_bluetooth_description);
+        return getRadarService().getString(R.string.phone_bluetooth_description);
     }
 
     @Override

@@ -38,7 +38,7 @@ public class PhoneUsageProvider extends DeviceServiceProvider<BaseDeviceState> {
 
     @Override
     public String getDescription() {
-        return getActivity().getString(R.string.phone_usage_description);
+        return getRadarService().getString(R.string.phone_usage_description);
     }
 
     @Override
@@ -48,7 +48,7 @@ public class PhoneUsageProvider extends DeviceServiceProvider<BaseDeviceState> {
 
     @Override
     public String getDisplayName() {
-        return getActivity().getString(R.string.phoneUsageServiceDisplayName);
+        return getRadarService().getString(R.string.phoneUsageServiceDisplayName);
     }
 
     @Override

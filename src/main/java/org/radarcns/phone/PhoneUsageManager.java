@@ -21,7 +21,6 @@ import android.app.usage.UsageStatsManager;
 import android.content.*;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
-import org.radarcns.android.data.DataCache;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
@@ -31,6 +30,7 @@ import org.radarcns.passive.phone.PhoneInteractionState;
 import org.radarcns.passive.phone.PhoneUsageEvent;
 import org.radarcns.passive.phone.PhoneUserInteraction;
 import org.radarcns.passive.phone.UsageEventType;
+import org.radarcns.topic.AvroTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,8 +63,8 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     private static final String ACTION_UPDATE_EVENTS = "org.radarcns.phone.PhoneUsageManager.ACTION_UPDATE_EVENTS";
     private static final int USAGE_EVENT_REQUEST_CODE = 586106;
 
-    private final DataCache<ObservationKey, PhoneUsageEvent> usageEventTable;
-    private final DataCache<ObservationKey, PhoneUserInteraction> userInteractionTable;
+    private final AvroTopic<ObservationKey, PhoneUsageEvent> usageEventTopic;
+    private final AvroTopic<ObservationKey, PhoneUserInteraction> userInteractionTopic;
 
     private final BroadcastReceiver phoneStateReceiver;
 
@@ -81,8 +81,8 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         super(context);
 
         PhoneUsageTopics topics = context.getTopics();
-        this.usageEventTable = getCache(topics.getUsageEventTopic());
-        this.userInteractionTable = getCache(topics.getUserInteractionTopic());
+        this.usageEventTopic = topics.getUsageEventTopic();
+        this.userInteractionTopic = topics.getUserInteractionTopic();
 
         this.usageStatsManager = (UsageStatsManager) context.getSystemService("usagestats");
         this.preferences = context.getSharedPreferences(PhoneUsageService.class.getName(), Context.MODE_PRIVATE);
@@ -153,7 +153,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         }
 
         double time = System.currentTimeMillis() / 1000d;
-        send(userInteractionTable, new PhoneUserInteraction(time, time, state));
+        send(userInteractionTopic, new PhoneUserInteraction(time, time, state));
 
         // Save the last user interaction state. Value shutdown is used to register boot.
         preferences.edit()
@@ -216,7 +216,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         double timeReceived = System.currentTimeMillis() / 1000d;
         PhoneUsageEvent value = new PhoneUsageEvent(
                 time, timeReceived, lastPackageName, null, null, usageEventType);
-        send(usageEventTable, value);
+        send(usageEventTopic, value);
 
         if (logger.isDebugEnabled()) {
             logger.debug("Event: [{}] {}\n\t{}", lastEventType, lastPackageName, new Date(lastTimestamp));

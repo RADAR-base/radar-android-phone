@@ -27,7 +27,6 @@ import android.os.HandlerThread;
 import android.os.Process;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import org.radarcns.android.data.DataCache;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
@@ -35,6 +34,7 @@ import org.radarcns.android.util.BatteryLevelReceiver;
 import org.radarcns.kafka.ObservationKey;
 import org.radarcns.passive.phone.LocationProvider;
 import org.radarcns.passive.phone.PhoneRelativeLocation;
+import org.radarcns.topic.AvroTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +64,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         PROVIDER_TYPES.put(LocationManager.NETWORK_PROVIDER, LocationProvider.NETWORK);
     }
 
-    private final DataCache<ObservationKey, PhoneRelativeLocation> locationTable;
+    private final AvroTopic<ObservationKey, PhoneRelativeLocation> locationTopic;
     private final LocationManager locationManager;
     private final BatteryLevelReceiver batteryLevelReceiver;
     private final SharedPreferences preferences;
@@ -85,7 +85,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
     public PhoneLocationManager(PhoneLocationService context) {
         super(context);
         PhoneLocationTopics topics = context.getTopics();
-        this.locationTable = getCache(topics.getRelativeLocationTopic());
+        this.locationTopic = topics.getRelativeLocationTopic();
 
         locationManager = (LocationManager) getService().getSystemService(Context.LOCATION_SERVICE);
         this.handlerThread = new HandlerThread("PhoneLocation", Process.THREAD_PRIORITY_BACKGROUND);
@@ -165,7 +165,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
                 eventTimestamp, timestamp, provider,
                 latitude, longitude,
                 altitude, accuracy, speed, bearing);
-        send(locationTable, value);
+        send(locationTopic, value);
 
         logger.info("Location: {} {} {} {} {} {} {} {} {}", provider, eventTimestamp, latitude,
                 longitude, accuracy, altitude, speed, bearing, timestamp);

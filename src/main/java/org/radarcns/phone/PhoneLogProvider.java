@@ -43,12 +43,12 @@ public class PhoneLogProvider extends DeviceServiceProvider<BaseDeviceState> {
 
     @Override
     public String getDescription() {
-        return getActivity().getString(R.string.phone_log_description);
+        return getRadarService().getString(R.string.phone_log_description);
     }
 
     @Override
     public String getDisplayName() {
-        return getActivity().getString(R.string.phoneLogServiceDisplayName);
+        return getRadarService().getString(R.string.phoneLogServiceDisplayName);
     }
 
     @Override
