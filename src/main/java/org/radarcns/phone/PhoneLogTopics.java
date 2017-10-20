@@ -42,15 +42,9 @@ public class PhoneLogTopics extends DeviceTopics {
     }
 
     private PhoneLogTopics() {
-        callTopic = createTopic("android_phone_call",
-                PhoneCall.getClassSchema(),
-                PhoneCall.class);
-        smsTopic = createTopic("android_phone_sms",
-                PhoneSms.getClassSchema(),
-                PhoneSms.class);
-        smsUnreadTopic = createTopic("android_phone_sms_unread",
-                PhoneSmsUnread.getClassSchema(),
-                PhoneSmsUnread.class);
+        callTopic = createTopic("android_phone_call", PhoneCall.class);
+        smsTopic = createTopic("android_phone_sms", PhoneSms.class);
+        smsUnreadTopic = createTopic("android_phone_sms_unread", PhoneSmsUnread.class);
     }
 
     public AvroTopic<ObservationKey, PhoneCall> getCallTopic() {

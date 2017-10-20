@@ -48,24 +48,12 @@ public class PhoneSensorTopics extends DeviceTopics {
     }
 
     private PhoneSensorTopics() {
-        accelerationTopic = createTopic("android_phone_acceleration",
-                PhoneAcceleration.getClassSchema(),
-                PhoneAcceleration.class);
-        batteryLevelTopic = createTopic("android_phone_battery_level",
-                PhoneBatteryLevel.getClassSchema(),
-                PhoneBatteryLevel.class);
-        lightTopic = createTopic("android_phone_light",
-                PhoneLight.getClassSchema(),
-                PhoneLight.class);
-        stepCountTopic = createTopic("android_phone_step_count",
-                PhoneStepCount.getClassSchema(),
-                PhoneStepCount.class);
-        gyroscopeTopic = createTopic("android_phone_gyroscope",
-                PhoneGyroscope.getClassSchema(),
-                PhoneGyroscope.class);
-        magneticFieldTopic = createTopic("android_phone_magnetic_field",
-                PhoneMagneticField.getClassSchema(),
-                PhoneMagneticField.class);
+        accelerationTopic = createTopic("android_phone_acceleration", PhoneAcceleration.class);
+        batteryLevelTopic = createTopic("android_phone_battery_level", PhoneBatteryLevel.class);
+        lightTopic = createTopic("android_phone_light", PhoneLight.class);
+        stepCountTopic = createTopic("android_phone_step_count", PhoneStepCount.class);
+        gyroscopeTopic = createTopic("android_phone_gyroscope", PhoneGyroscope.class);
+        magneticFieldTopic = createTopic("android_phone_magnetic_field", PhoneMagneticField.class);
     }
 
     public AvroTopic<ObservationKey, PhoneAcceleration> getAccelerationTopic() {

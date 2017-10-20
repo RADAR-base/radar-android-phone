@@ -38,9 +38,7 @@ public class PhoneLocationTopics extends DeviceTopics {
     }
 
     private PhoneLocationTopics() {
-        relativeLocationTopic = createTopic("android_phone_relative_location",
-                PhoneRelativeLocation.getClassSchema(),
-                PhoneRelativeLocation.class);
+        relativeLocationTopic = createTopic("android_phone_relative_location", PhoneRelativeLocation.class);
     }
 
     public AvroTopic<ObservationKey, PhoneRelativeLocation> getRelativeLocationTopic() {

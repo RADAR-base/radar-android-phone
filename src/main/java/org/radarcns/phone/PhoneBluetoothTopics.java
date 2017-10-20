@@ -27,9 +27,7 @@ public class PhoneBluetoothTopics extends DeviceTopics {
     private static volatile PhoneBluetoothTopics instance;
 
     private PhoneBluetoothTopics() {
-        bluetoothDevicesTopic= createTopic("android_phone_bluetooth_devices",
-                PhoneBluetoothDevices.getClassSchema(),
-                PhoneBluetoothDevices.class);
+        bluetoothDevicesTopic= createTopic("android_phone_bluetooth_devices", PhoneBluetoothDevices.class);
     }
 
     public static PhoneBluetoothTopics getInstance() {

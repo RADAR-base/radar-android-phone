@@ -40,12 +40,8 @@ public class PhoneUsageTopics extends DeviceTopics {
     }
 
     private PhoneUsageTopics() {
-        interactionTopic = createTopic("android_phone_user_interaction",
-                PhoneUserInteraction.getClassSchema(),
-                PhoneUserInteraction.class);
-        usageEventTopic = createTopic("android_phone_usage_event",
-                PhoneUsageEvent.getClassSchema(),
-                PhoneUsageEvent.class);
+        interactionTopic = createTopic("android_phone_user_interaction", PhoneUserInteraction.class);
+        usageEventTopic = createTopic("android_phone_usage_event", PhoneUsageEvent.class);
     }
 
     public AvroTopic<ObservationKey, PhoneUserInteraction> getUserInteractionTopic() {

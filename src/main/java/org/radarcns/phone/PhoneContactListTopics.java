@@ -37,9 +37,7 @@ public class PhoneContactListTopics extends DeviceTopics {
     }
 
     private PhoneContactListTopics() {
-        contactListTopic = createTopic("android_phone_contacts",
-                PhoneContactList.getClassSchema(),
-                PhoneContactList.class);
+        contactListTopic = createTopic("android_phone_contacts", PhoneContactList.class);
     }
 
     public AvroTopic<ObservationKey, PhoneContactList> getContactListTopic() {
