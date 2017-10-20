@@ -105,7 +105,6 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
                 ACTION_UPDATE_EVENTS, usageEventInterval, false);
 
         setName(String.format(context.getString(R.string.app_usage_service_name), android.os.Build.MODEL));
-        updateStatus(DeviceStatusListener.Status.READY);
     }
 
     @Override

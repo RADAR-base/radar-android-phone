@@ -109,7 +109,6 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         isStarted = false;
         setName(String.format(context.getString(R.string.location_manager_name),
                 android.os.Build.MODEL));
-        updateStatus(DeviceStatusListener.Status.READY);
     }
 
     @Override
