@@ -84,8 +84,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
 
     public PhoneLocationManager(PhoneLocationService context) {
         super(context);
-        PhoneLocationTopics topics = context.getTopics();
-        this.locationTopic = topics.getRelativeLocationTopic();
+        this.locationTopic = createTopic("android_phone_relative_location", PhoneRelativeLocation.class);
 
         locationManager = (LocationManager) getService().getSystemService(Context.LOCATION_SERVICE);
         this.handlerThread = new HandlerThread("PhoneLocation", Process.THREAD_PRIORITY_BACKGROUND);

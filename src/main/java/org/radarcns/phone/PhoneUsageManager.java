@@ -80,9 +80,8 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     public PhoneUsageManager(PhoneUsageService context, long usageEventInterval) {
         super(context);
 
-        PhoneUsageTopics topics = context.getTopics();
-        this.usageEventTopic = topics.getUsageEventTopic();
-        this.userInteractionTopic = topics.getUserInteractionTopic();
+        userInteractionTopic = createTopic("android_phone_user_interaction", PhoneUserInteraction.class);
+        usageEventTopic = createTopic("android_phone_usage_event", PhoneUsageEvent.class);
 
         this.usageStatsManager = (UsageStatsManager) context.getSystemService("usagestats");
         this.preferences = context.getSharedPreferences(PhoneUsageService.class.getName(), Context.MODE_PRIVATE);

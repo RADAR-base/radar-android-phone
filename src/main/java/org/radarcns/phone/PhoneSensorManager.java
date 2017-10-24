@@ -105,15 +105,15 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
     public PhoneSensorManager(PhoneSensorService context) {
         super(context);
-        PhoneSensorTopics topics = PhoneSensorTopics.getInstance();
-        this.accelerationTopic = topics.getAccelerationTopic();
-        this.lightTopic = topics.getLightTopic();
-        this.stepCountTopic = topics.getStepCountTopic();
-        this.gyroscopeTopic = topics.getGyroscopeTopic();
-        this.magneticFieldTopic = topics.getMagneticFieldTopic();
-        this.sensorDelays = new SparseIntArray();
-        this.batteryTopic = topics.getBatteryLevelTopic();
 
+        accelerationTopic = createTopic("android_phone_acceleration", PhoneAcceleration.class);
+        batteryTopic = createTopic("android_phone_battery_level", PhoneBatteryLevel.class);
+        lightTopic = createTopic("android_phone_light", PhoneLight.class);
+        stepCountTopic = createTopic("android_phone_step_count", PhoneStepCount.class);
+        gyroscopeTopic = createTopic("android_phone_gyroscope", PhoneGyroscope.class);
+        magneticFieldTopic = createTopic("android_phone_magnetic_field", PhoneMagneticField.class);
+
+        this.sensorDelays = new SparseIntArray();
         mHandlerThread = new HandlerThread("Phone sensors", THREAD_PRIORITY_BACKGROUND);
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         batteryLevelReceiver = new BroadcastReceiver() {

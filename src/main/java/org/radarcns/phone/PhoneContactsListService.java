@@ -39,11 +39,6 @@ public class PhoneContactsListService extends DeviceService<BaseDeviceState> {
         return new BaseDeviceState();
     }
 
-    @Override
-    protected PhoneContactListTopics getTopics() {
-        return PhoneContactListTopics.getInstance();
-    }
-
     public long getCheckInterval() {
         return checkInterval;
     }

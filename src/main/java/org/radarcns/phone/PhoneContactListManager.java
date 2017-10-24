@@ -51,7 +51,7 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
         super(service);
 
         preferences = service.getSharedPreferences(PhoneContactListManager.class.getName(), Context.MODE_PRIVATE);
-        contactsTopic = service.getTopics().getContactListTopic();
+        contactsTopic = createTopic("android_phone_contacts", PhoneContactList.class);
 
         processor = new OfflineProcessor(service, this, CONTACTS_LIST_UPDATE_REQUEST_CODE,
                 ACTION_UPDATE_CONTACTS_LIST, service.getCheckInterval(), false);

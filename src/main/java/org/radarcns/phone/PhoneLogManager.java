@@ -84,10 +84,9 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
 
     public PhoneLogManager(PhoneLogService context, long logInterval) {
         super(context);
-        PhoneLogTopics topics = context.getTopics();
-        callTopic = topics.getCallTopic();
-        smsTopic = topics.getSmsTopic();
-        smsUnreadTopic = topics.getSmsUnreadTopic();
+        callTopic = createTopic("android_phone_call", PhoneCall.class);
+        smsTopic = createTopic("android_phone_sms", PhoneSms.class);
+        smsUnreadTopic = createTopic("android_phone_sms_unread", PhoneSmsUnread.class);
 
         preferences = context.getSharedPreferences(PhoneLogService.class.getName(), Context.MODE_PRIVATE);
         lastCallTimestamp = preferences.getLong(LAST_CALL_KEY, System.currentTimeMillis());
