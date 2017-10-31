@@ -40,11 +40,6 @@ public class PhoneUsageService extends DeviceService<BaseDeviceState> {
     }
 
     @Override
-    protected PhoneUsageTopics getTopics() {
-        return PhoneUsageTopics.getInstance();
-    }
-
-    @Override
     protected void onInvocation(Bundle bundle) {
         super.onInvocation(bundle);
         usageEventInterval = bundle.getLong(PHONE_USAGE_INTERVAL_KEY);

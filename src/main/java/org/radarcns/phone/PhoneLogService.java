@@ -36,11 +36,6 @@ public class PhoneLogService extends DeviceService<BaseDeviceState> {
     }
 
     @Override
-    protected PhoneLogTopics getTopics() {
-        return PhoneLogTopics.getInstance();
-    }
-
-    @Override
     protected void onInvocation(Bundle bundle) {
         super.onInvocation(bundle);
         logInterval = bundle.getLong(CALL_SMS_LOG_INTERVAL_KEY);

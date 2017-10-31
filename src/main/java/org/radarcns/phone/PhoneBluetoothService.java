@@ -39,11 +39,6 @@ public class PhoneBluetoothService extends DeviceService<BaseDeviceState> {
         return new BaseDeviceState();
     }
 
-    @Override
-    protected PhoneBluetoothTopics getTopics() {
-        return PhoneBluetoothTopics.getInstance();
-    }
-
     public long getCheckInterval() {
         return checkInterval;
     }

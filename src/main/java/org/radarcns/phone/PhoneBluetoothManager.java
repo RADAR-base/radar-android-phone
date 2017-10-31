@@ -23,13 +23,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.support.annotation.NonNull;
-import org.radarcns.android.data.DataCache;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
 import org.radarcns.android.util.OfflineProcessor;
 import org.radarcns.kafka.ObservationKey;
 import org.radarcns.passive.phone.PhoneBluetoothDevices;
+import org.radarcns.topic.AvroTopic;
 
 import java.io.IOException;
 import java.util.Set;
@@ -38,7 +38,7 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
     private static final int SCAN_DEVICES_REQUEST_CODE = 3248902;
     private static final String ACTION_SCAN_DEVICES = "org.radarcns.phone.PhoneBluetoothManager.ACTION_SCAN_DEVICES";
     private final OfflineProcessor processor;
-    private final DataCache<ObservationKey, PhoneBluetoothDevices> bluetoothDevicesTable;
+    private final AvroTopic<ObservationKey, PhoneBluetoothDevices> bluetoothDevicesTopic;
     private BroadcastReceiver bluetoothBroadcastReceiver;
 
     public PhoneBluetoothManager(PhoneBluetoothService service) {
@@ -47,7 +47,7 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
         processor = new OfflineProcessor(service, this, SCAN_DEVICES_REQUEST_CODE,
                 ACTION_SCAN_DEVICES, service.getCheckInterval(), true);
 
-        bluetoothDevicesTable =  getCache(service.getTopics().getBluetoothDevicesTopic());
+        bluetoothDevicesTopic = createTopic("android_phone_bluetooth_devices", PhoneBluetoothDevices.class);
     }
 
     @Override
@@ -93,7 +93,7 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
 
                         if (!isClosed()) {
                             double now = System.currentTimeMillis() / 1000.0;
-                            send(bluetoothDevicesTable,
+                            send(bluetoothDevicesTopic,
                                     new PhoneBluetoothDevices(now, now, bondedDevices, numberOfDevices, wasEnabled));
                         }
                         break;

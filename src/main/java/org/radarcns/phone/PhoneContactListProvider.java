@@ -38,7 +38,7 @@ public class PhoneContactListProvider extends DeviceServiceProvider<BaseDeviceSt
 
     @Override
     public String getDescription() {
-        return getActivity().getString(R.string.phone_contact_list_description);
+        return getRadarService().getString(R.string.phone_contact_list_description);
     }
 
     @Override

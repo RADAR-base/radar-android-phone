@@ -23,13 +23,13 @@ import android.provider.BaseColumns;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import avro.shaded.com.google.common.collect.Sets;
-import org.radarcns.android.data.DataCache;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
 import org.radarcns.android.util.OfflineProcessor;
 import org.radarcns.kafka.ObservationKey;
 import org.radarcns.passive.phone.PhoneContactList;
+import org.radarcns.topic.AvroTopic;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -44,14 +44,14 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
 
     private final SharedPreferences preferences;
     private final OfflineProcessor processor;
-    private final DataCache<ObservationKey, PhoneContactList> contactsTable;
+    private final AvroTopic<ObservationKey, PhoneContactList> contactsTopic;
     private Set<String> savedContactIds;
 
     public PhoneContactListManager(PhoneContactsListService service) {
         super(service);
 
         preferences = service.getSharedPreferences(PhoneContactListManager.class.getName(), Context.MODE_PRIVATE);
-        contactsTable = getCache(service.getTopics().getContactListTopic());
+        contactsTopic = createTopic("android_phone_contacts", PhoneContactList.class);
 
         processor = new OfflineProcessor(service, this, CONTACTS_LIST_UPDATE_REQUEST_CODE,
                 ACTION_UPDATE_CONTACTS_LIST, service.getCheckInterval(), false);
@@ -89,7 +89,7 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
         preferences.edit().putStringSet(CONTACT_IDS, savedContactIds).apply();
 
         double timestamp = System.currentTimeMillis() / 1000.0;
-        send(contactsTable, new PhoneContactList(timestamp, timestamp, added, removed, newContactIds.size()));
+        send(contactsTopic, new PhoneContactList(timestamp, timestamp, added, removed, newContactIds.size()));
     }
 
     private Set<String> getContactIds() {

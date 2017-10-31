@@ -37,7 +37,7 @@ public class PhoneSensorProvider extends DeviceServiceProvider<PhoneState> {
 
     @Override
     public String getDescription() {
-        return getActivity().getString(R.string.phone_sensors_description);
+        return getRadarService().getString(R.string.phone_sensors_description);
     }
 
     @Override
@@ -47,7 +47,7 @@ public class PhoneSensorProvider extends DeviceServiceProvider<PhoneState> {
 
     @Override
     public String getDisplayName() {
-        return getActivity().getString(R.string.phoneServiceDisplayName);
+        return getRadarService().getString(R.string.phoneServiceDisplayName);
     }
 
     @Override

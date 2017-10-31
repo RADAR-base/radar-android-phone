@@ -31,7 +31,6 @@ import android.os.PowerManager;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
-import org.radarcns.android.data.DataCache;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.DeviceStatusListener;
 import org.radarcns.kafka.ObservationKey;
@@ -89,11 +88,11 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         BATTERY_TYPES.append(BATTERY_STATUS_FULL, BatteryStatus.FULL);
     }
 
-    private final DataCache<ObservationKey, PhoneAcceleration> accelerationTable;
-    private final DataCache<ObservationKey, PhoneLight> lightTable;
-    private final DataCache<ObservationKey, PhoneStepCount> stepCountTable;
-    private final DataCache<ObservationKey, PhoneGyroscope> gyroscopeTable;
-    private final DataCache<ObservationKey, PhoneMagneticField> magneticFieldTable;
+    private final AvroTopic<ObservationKey, PhoneAcceleration> accelerationTopic;
+    private final AvroTopic<ObservationKey, PhoneLight> lightTopic;
+    private final AvroTopic<ObservationKey, PhoneStepCount> stepCountTopic;
+    private final AvroTopic<ObservationKey, PhoneGyroscope> gyroscopeTopic;
+    private final AvroTopic<ObservationKey, PhoneMagneticField> magneticFieldTopic;
     private final AvroTopic<ObservationKey, PhoneBatteryLevel> batteryTopic;
     private final SparseIntArray sensorDelays;
 
@@ -106,15 +105,15 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
     public PhoneSensorManager(PhoneSensorService context) {
         super(context);
-        PhoneSensorTopics topics = PhoneSensorTopics.getInstance();
-        this.accelerationTable = getCache(topics.getAccelerationTopic());
-        this.lightTable = getCache(topics.getLightTopic());
-        this.stepCountTable = getCache(topics.getStepCountTopic());
-        this.gyroscopeTable = getCache(topics.getGyroscopeTopic());
-        this.magneticFieldTable = getCache(topics.getMagneticFieldTopic());
-        this.sensorDelays = new SparseIntArray();
-        this.batteryTopic = topics.getBatteryLevelTopic();
 
+        accelerationTopic = createTopic("android_phone_acceleration", PhoneAcceleration.class);
+        batteryTopic = createTopic("android_phone_battery_level", PhoneBatteryLevel.class);
+        lightTopic = createTopic("android_phone_light", PhoneLight.class);
+        stepCountTopic = createTopic("android_phone_step_count", PhoneStepCount.class);
+        gyroscopeTopic = createTopic("android_phone_gyroscope", PhoneGyroscope.class);
+        magneticFieldTopic = createTopic("android_phone_magnetic_field", PhoneMagneticField.class);
+
+        this.sensorDelays = new SparseIntArray();
         mHandlerThread = new HandlerThread("Phone sensors", THREAD_PRIORITY_BACKGROUND);
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         batteryLevelReceiver = new BroadcastReceiver() {
@@ -242,7 +241,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         // nanoseconds uptime to seconds utc
         double timestamp = eventTimestampToSecondsUTC(event.timestamp);
 
-        send(accelerationTable, new PhoneAcceleration(timestamp, timeReceived, x, y, z));
+        send(accelerationTopic, new PhoneAcceleration(timestamp, timeReceived, x, y, z));
     }
 
     private void processLight(SensorEvent event) {
@@ -254,7 +253,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         // nanoseconds uptime to seconds utc
         double timestamp = eventTimestampToSecondsUTC(event.timestamp);
 
-        send(lightTable, new PhoneLight(timestamp, timeReceived, lightValue));
+        send(lightTopic, new PhoneLight(timestamp, timeReceived, lightValue));
     }
 
     private void processGyroscope(SensorEvent event) {
@@ -268,7 +267,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         // nanoseconds uptime to seconds utc
         double timestamp = eventTimestampToSecondsUTC(event.timestamp);
 
-        send(gyroscopeTable, new PhoneGyroscope(timestamp, timeReceived, axisX, axisY, axisZ));
+        send(gyroscopeTopic, new PhoneGyroscope(timestamp, timeReceived, axisX, axisY, axisZ));
     }
 
     private void processMagneticField(SensorEvent event) {
@@ -282,7 +281,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         // nanoseconds uptime to seconds utc
         double timestamp = eventTimestampToSecondsUTC(event.timestamp);
         ;
-        send(magneticFieldTable, new PhoneMagneticField(timestamp, timeReceived, axisX, axisY, axisZ));
+        send(magneticFieldTopic, new PhoneMagneticField(timestamp, timeReceived, axisX, axisY, axisZ));
     }
 
     private void processStep(SensorEvent event) {
@@ -303,7 +302,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
             stepsSinceLastUpdate = stepCount - lastStepCount;
         }
         lastStepCount = stepCount;
-        send(stepCountTable, new PhoneStepCount(timestamp, timeReceived, stepsSinceLastUpdate));
+        send(stepCountTopic, new PhoneStepCount(timestamp, timeReceived, stepsSinceLastUpdate));
 
         logger.info("Steps taken: {}", stepsSinceLastUpdate);
     }

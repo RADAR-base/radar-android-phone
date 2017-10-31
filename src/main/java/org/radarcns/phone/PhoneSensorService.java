@@ -38,7 +38,6 @@ import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_STEP_COUNT_INT
  * the phone sensors and send it to a Kafka REST proxy.
  */
 public class PhoneSensorService extends DeviceService<PhoneState> {
-    private static final PhoneSensorTopics PHONE_SENSOR_TOPICS = PhoneSensorTopics.getInstance();
     private SparseIntArray sensorDelays;
 
     @Override
@@ -57,22 +56,6 @@ public class PhoneSensorService extends DeviceService<PhoneState> {
     @Override
     protected PhoneState getDefaultState() {
         return new PhoneState();
-    }
-
-    @Override
-    protected PhoneSensorTopics getTopics() {
-        return PHONE_SENSOR_TOPICS;
-    }
-
-    @Override
-    protected List<AvroTopic<ObservationKey, ? extends SpecificRecord>> getCachedTopics() {
-        return Arrays.<AvroTopic<ObservationKey, ? extends SpecificRecord>>asList(
-                PHONE_SENSOR_TOPICS.getAccelerationTopic(),
-                PHONE_SENSOR_TOPICS.getLightTopic(),
-                PHONE_SENSOR_TOPICS.getGyroscopeTopic(),
-                PHONE_SENSOR_TOPICS.getMagneticFieldTopic(),
-                PHONE_SENSOR_TOPICS.getStepCountTopic()
-        );
     }
 
     @Override

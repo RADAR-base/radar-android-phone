@@ -48,11 +48,6 @@ public class PhoneLocationService extends DeviceService<BaseDeviceState> {
         return new BaseDeviceState();
     }
 
-    @Override
-    protected PhoneLocationTopics getTopics() {
-        return PhoneLocationTopics.getInstance();
-    }
-
     private void configureManager(PhoneLocationManager manager) {
         manager.setBatteryLevels(batteryLevelMinimum, batteryLevelReduced);
         manager.setIntervals(gpsInterval, gpsIntervalReduced, networkInterval, networkIntervalReduced);
