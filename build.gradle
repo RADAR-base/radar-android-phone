@@ -4,7 +4,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:2.3.0'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
     }
@@ -16,7 +16,7 @@ apply plugin: 'com.github.dcendents.android-maven'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.3"
+    buildToolsVersion "26.0.1"
 
     defaultConfig {
         minSdkVersion 21
@@ -55,7 +55,7 @@ android {
 group = 'org.radarcns'
 ext.moduleName = 'radar-android-phone'
 ext.moduleDescription = 'Basic phone sensor plugin for RADAR passive remote monitoring app'
-ext.githubRepoName = 'RADAR-CNS/RADAR-Android-Phone'
+ext.githubRepoName = 'RADAR-CNS/radar-android-phone'
 version = android.defaultConfig.versionName
 
 ext.githubUrl = 'https://github.com/' + githubRepoName + '.git'
@@ -66,26 +66,20 @@ ext.website = 'http://radar-cns.org'
 // Sources and classpath configurations                                      //
 //---------------------------------------------------------------------------//
 
+configurations.compile {
+    resolutionStrategy.cacheChangingModulesFor 0, 'SECONDS'
+}
+
 repositories {
     jcenter()
-    flatDir { dirs 'libs' }
+    maven { url 'https://oss.jfrog.org/artifactory/oss-snapshot-local' }
 }
 
 dependencies {
-    compile 'org.radarcns:radar-commons-android:0.2.1'
-    compile 'org.radarcns:radar-schemas-commons:0.1'
+    compile 'org.radarcns:radar-commons-android:0.3-SNAPSHOT'
+    compile 'org.radarcns:radar-schemas-commons:0.2-alpha.3-SNAPSHOT'
 
-    // tmp
-    compile 'com.squareup.okhttp3:okhttp:3.6.0'
-    compile 'org.apache.avro:avro:1.8.1'
-    compile 'org.xerial.snappy:snappy-java:1.1.2.6'
-    compile 'com.google.firebase:firebase-config:10.0.1'
-    compile ('org.radarcns:radar-commons:0.2.1') {
-        exclude group: 'io.confluent', module: 'kafka-avro-serializer'
-        exclude group: 'org.apache.kafka', module: 'kafka-clients'
-        exclude group: 'com.fasterxml.jackson.dataformat', module: 'jackson-dataformat-yaml'
-    }
-    compile 'org.radarcns:radar-schemas-commons:0.1'
+    compile 'com.android.support:support-annotations:25.3.1'
 
     testCompile 'junit:junit:4.12'
     testCompile 'org.slf4j:slf4j-simple:1.7.21'
@@ -124,7 +118,7 @@ artifacts {
     archives sourcesJar
 }
 
-def pomConfig = {
+ext.pomConfig = {
     licenses {
         license {
             name "The Apache Software License, Version 2.0"
@@ -206,6 +200,6 @@ bintray {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '3.4.1'
-    distributionUrl distributionUrl.replace("bin", "all")
+    gradleVersion = '4.1'
+    distributionType 'all'
 }

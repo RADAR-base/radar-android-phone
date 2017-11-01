@@ -16,41 +16,78 @@
 
 package org.radarcns.phone;
 
-import android.os.Parcelable;
-
+import android.os.Build;
+import android.os.Bundle;
+import android.support.annotation.NonNull;
+import org.radarcns.android.RadarConfiguration;
+import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-import static android.Manifest.permission.INTERNET;
-import static android.Manifest.permission.PACKAGE_USAGE_STATS;
-import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-//import static android.Manifest.permission.PACKAGE_USAGE_STATS;
+import static org.radarcns.phone.PhoneSensorProvider.DEVICE_MODEL;
+import static org.radarcns.phone.PhoneSensorProvider.DEVICE_PRODUCER;
 
-public class PhoneUsageProvider extends DeviceServiceProvider<PhoneState> {
+public class PhoneUsageProvider extends DeviceServiceProvider<BaseDeviceState> {
+    private static final String PHONE_PREFIX = "org.radarcns.phone.";
+    private static final String PHONE_USAGE_INTERVAL = "phone_usage_interval_seconds";
+    private static final long USAGE_EVENT_PERIOD_DEFAULT = 60*60; // one hour
+
+    public static final String PHONE_USAGE_INTERVAL_KEY = PHONE_PREFIX + PHONE_USAGE_INTERVAL;
+
+    @Override
+    public String getDescription() {
+        return getRadarService().getString(R.string.phone_usage_description);
+    }
+
     @Override
     public Class<?> getServiceClass() {
         return PhoneUsageService.class;
     }
 
     @Override
-    public Parcelable.Creator<PhoneState> getStateCreator() {
-        return PhoneState.CREATOR;
-    }
-
-    @Override
     public String getDisplayName() {
-        return getActivity().getString(R.string.phoneUsageServiceDisplayName);
+        return getRadarService().getString(R.string.phoneUsageServiceDisplayName);
     }
 
     @Override
     public List<String> needsPermissions() {
-        //Check if permission enabled
-//        if (appUsages.getUsageStatsList().isEmpty()){
-//            Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
-//            startActivity(intent);
-//        }
-        return Arrays.asList(PACKAGE_USAGE_STATS);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return Collections.singletonList(android.Manifest.permission.PACKAGE_USAGE_STATS);
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceProducer() {
+        return DEVICE_PRODUCER;
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceModel() {
+        return DEVICE_MODEL;
+    }
+
+    @NonNull
+    @Override
+    public String getVersion() {
+        return BuildConfig.VERSION_NAME;
+    }
+
+    @Override
+    protected void configure(Bundle bundle) {
+        super.configure(bundle);
+        RadarConfiguration config = getConfig();
+        bundle.putLong(PHONE_USAGE_INTERVAL_KEY, config.getLong(
+                PHONE_USAGE_INTERVAL, USAGE_EVENT_PERIOD_DEFAULT));
+    }
+
+    @Override
+    public boolean isDisplayable() {
+        return false;
     }
 }

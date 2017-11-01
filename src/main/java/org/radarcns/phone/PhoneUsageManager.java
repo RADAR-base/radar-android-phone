@@ -16,115 +16,121 @@
 
 package org.radarcns.phone;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.app.usage.UsageEvents;
 import android.app.usage.UsageStatsManager;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.SharedPreferences;
+import android.content.*;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
-
-import java.io.IOException;
-import java.util.Date;
-
-import org.radarcns.android.data.DataCache;
-import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.android.util.OfflineProcessor;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.phone.PhoneInteractionState;
+import org.radarcns.passive.phone.PhoneUsageEvent;
+import org.radarcns.passive.phone.PhoneUserInteraction;
+import org.radarcns.passive.phone.UsageEventType;
+import org.radarcns.topic.AvroTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.Date;
 import java.util.Set;
 
-import static android.content.Context.ALARM_SERVICE;
-
-class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDeviceState> {
+class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDeviceState> implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(PhoneUsageManager.class);
 
-    private UsageStatsManager usageStatsManager;
+    private static final SparseArray<UsageEventType> EVENT_TYPES = new SparseArray<>(6);
 
-    private static final SparseArray<UsageEventType> EVENT_TYPES = new SparseArray<>(4);
     static {
         EVENT_TYPES.append(UsageEvents.Event.MOVE_TO_FOREGROUND, UsageEventType.FOREGROUND);
         EVENT_TYPES.append(UsageEvents.Event.MOVE_TO_BACKGROUND, UsageEventType.BACKGROUND);
         EVENT_TYPES.append(UsageEvents.Event.CONFIGURATION_CHANGE, UsageEventType.CONFIG);
-        EVENT_TYPES.append(UsageEvents.Event.NONE, UsageEventType.NONE);
         if (android.os.Build.VERSION.SDK_INT >= 25) {
             EVENT_TYPES.append(UsageEvents.Event.SHORTCUT_INVOCATION, UsageEventType.SHORTCUT);
+        }
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
             EVENT_TYPES.append(UsageEvents.Event.USER_INTERACTION, UsageEventType.INTERACTION);
         }
     }
-
-    private String previousEventPackageName;
-    private Long previousEventTimestamp;
-    private Integer previousEventType;
-    private boolean previousEventIsSent = false;
-
-    private SharedPreferences preferences;
-    private static final String PREVIOUS_PACKAGE_NAME = "org.radarcns.phone.packageName";
-    private static final String PREVIOUS_TIMESTAMP = "org.radarcns.phone.timestamp";
-    private static final String PREVIOUS_EVENT_TYPE = "org.radarcns.phone.eventType";
-    private static final String PREVIOUS_IS_SENT = "org.radarcns.phone.isSent";
+    private static final String LAST_PACKAGE_NAME = "org.radarcns.phone.packageName";
+    private static final String LAST_EVENT_TIMESTAMP = "org.radarcns.phone.timestamp";
+    private static final String LAST_EVENT_TYPE = "org.radarcns.phone.PhoneUsageManager.lastEventType";
+    private static final String LAST_EVENT_IS_SENT = "org.radarcns.phone.PhoneUsageManager.lastEventIsSent";
     private static final String LAST_USER_INTERACTION = "org.radarcns.phone.lastAction";
     private static final String ACTION_BOOT = "org.radarcns.phone.ACTION_BOOT";
+    private static final String ACTION_UPDATE_EVENTS = "org.radarcns.phone.PhoneUsageManager.ACTION_UPDATE_EVENTS";
+    private static final int USAGE_EVENT_REQUEST_CODE = 586106;
 
-    private final DataCache<MeasurementKey, PhoneUsageEvent> usageEventTable;
-    private final DataCache<MeasurementKey, PhoneUserInteraction> userInteractionTable;
+    private final AvroTopic<ObservationKey, PhoneUsageEvent> usageEventTopic;
+    private final AvroTopic<ObservationKey, PhoneUserInteraction> userInteractionTopic;
 
-    private static final long USAGE_EVENT_PERIOD_DEFAULT = 60*60; // one hour
-    private static final long USAGE_EVENT_HISTORY_DEFAULT = 60*60; // one hour
+    private final BroadcastReceiver phoneStateReceiver;
 
-    private PhoneUsageService context;
+    private final UsageStatsManager usageStatsManager;
+    private final SharedPreferences preferences;
+    private final OfflineProcessor phoneUsageProcessor;
 
-    public PhoneUsageManager(PhoneUsageService context, TableDataHandler dataHandler, String groupId, String sourceId) {
-        super(context, new BaseDeviceState(), dataHandler, groupId, sourceId);
+    private String lastPackageName;
+    private long lastTimestamp;
+    private int lastEventType;
+    private boolean lastEventIsSent;
 
-        this.context = context;
-        PhoneUsageTopics topics = PhoneUsageTopics.getInstance();
-        this.usageEventTable = dataHandler.getCache(topics.getUsageEventTopic());
-        this.userInteractionTable = dataHandler.getCache(topics.getUserInteractionTopic());
+    public PhoneUsageManager(PhoneUsageService context, long usageEventInterval) {
+        super(context);
 
-        usageStatsManager = (UsageStatsManager) context.getSystemService("usagestats");
+        userInteractionTopic = createTopic("android_phone_user_interaction", PhoneUserInteraction.class);
+        usageEventTopic = createTopic("android_phone_usage_event", PhoneUsageEvent.class);
+
+        this.usageStatsManager = (UsageStatsManager) context.getSystemService("usagestats");
         this.preferences = context.getSharedPreferences(PhoneUsageService.class.getName(), Context.MODE_PRIVATE);
-        this.loadPreviousEvent();
-
-        setName(android.os.Build.MODEL);
-        updateStatus(DeviceStatusListener.Status.READY);
-    }
-
-    @Override
-    public void start(@NonNull final Set<String> acceptableIds) {
-        // Start query of usage events
-        setUsageEventUpdateRate(USAGE_EVENT_PERIOD_DEFAULT);
+        this.loadLastEvent();
 
         // Listen for screen lock/unlock events
-        IntentFilter phoneStateFilter = new IntentFilter();
-        phoneStateFilter.addAction(Intent.ACTION_USER_PRESENT); // unlock
-        phoneStateFilter.addAction(Intent.ACTION_SCREEN_OFF); // lock
-        phoneStateFilter.addAction(Intent.ACTION_SHUTDOWN); // shutdown
-        getService().registerReceiver(new BroadcastReceiver() {
+        phoneStateReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 // If previous event was a shutdown, then this action indicates that the phone has booted
                 if (preferences.getString(LAST_USER_INTERACTION,"").equals(Intent.ACTION_SHUTDOWN)) {
-                    sendInteractionState(ACTION_BOOT, System.currentTimeMillis() / 1000d);
+                    sendInteractionState(ACTION_BOOT);
                 }
 
-                sendInteractionState(intent.getAction(), System.currentTimeMillis() / 1000d);
+                sendInteractionState(intent.getAction());
             }
-        }, phoneStateFilter);
+        };
+
+        phoneUsageProcessor = new OfflineProcessor(context, this, USAGE_EVENT_REQUEST_CODE,
+                ACTION_UPDATE_EVENTS, usageEventInterval, false);
+
+        setName(String.format(context.getString(R.string.app_usage_service_name), android.os.Build.MODEL));
+    }
+
+    @Override
+    public void start(@NonNull final Set<String> acceptableIds) {
+        updateStatus(DeviceStatusListener.Status.READY);
+        // Start query of usage events
+        phoneUsageProcessor.start();
+
+        IntentFilter phoneStateFilter = new IntentFilter();
+        phoneStateFilter.addAction(Intent.ACTION_USER_PRESENT); // unlock
+        phoneStateFilter.addAction(Intent.ACTION_SCREEN_OFF); // lock
+        phoneStateFilter.addAction(Intent.ACTION_SHUTDOWN); // shutdown
+
+        Context context = getService();
+        // Activity to perform when alarm is triggered
+        context.registerReceiver(phoneStateReceiver, phoneStateFilter);
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
     }
 
+    @Override
+    public void run() {
+        processUsageEvents();
+        storeLastEvent();
+    }
 
-    public void sendInteractionState(String action, double timestamp) {
+    private void sendInteractionState(String action) {
         PhoneInteractionState state;
 
         switch (action) {
@@ -144,146 +150,109 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
                 return;
         }
 
-        double timestampReceived = System.currentTimeMillis() / 1000d;
-        PhoneUserInteraction value = new PhoneUserInteraction(
-                timestamp, timestampReceived, state);
-        send(userInteractionTable, value);
+        double time = System.currentTimeMillis() / 1000d;
+        send(userInteractionTopic, new PhoneUserInteraction(time, time, state));
 
         // Save the last user interaction state. Value shutdown is used to register boot.
         preferences.edit()
                 .putString(LAST_USER_INTERACTION, action)
                 .apply();
-        logger.info("Interaction State: {} {}", timestamp, state);
+        logger.info("Interaction State: {} {}", time, state);
     }
 
-    public final synchronized void setUsageEventUpdateRate(final long period) {
-        // Create an intent and alarm that will be wrapped in PendingIntent
-        Intent intent = new Intent("ACTIVITY_LAUNCH_WAKE");
-
-        // Create the pending intent and wrap our intent
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(this.context, 1, intent, 0);
-
-        // Get alarm manager and schedule it to run every period (seconds)
-        AlarmManager alarmManager = (AlarmManager) this.context.getSystemService(ALARM_SERVICE);
-        alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), period * 1000, pendingIntent);
-
-        // Activity to perform when alarm is triggered
-        this.context.registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                processUsageEvents();
-            }
-        }, new IntentFilter("ACTIVITY_LAUNCH_WAKE"));
-
-        logger.info("Usage event alarm activated and set to a period of {} seconds", period);
+    /**
+     * Set the interval in which to collect logs about app usage.
+     * @param interval collection interval in seconds
+     */
+    public void setUsageEventUpdateRate(long interval) {
+        phoneUsageProcessor.setInterval(interval);
+        logger.info("Usage event alarm activated and set to a period of {} seconds", interval);
     }
 
     private void processUsageEvents() {
-        // Get events from previous event to now or from a fixed history
-        final long queryStartTime = previousEventPackageName == null ? System.currentTimeMillis() - USAGE_EVENT_HISTORY_DEFAULT * 1000 : previousEventTimestamp;
-        final long queryEndTime = System.currentTimeMillis();
-        UsageEvents usageEvents = usageStatsManager.queryEvents(queryStartTime, queryEndTime);
-
-        // Loop through all events, send opening and closing of app
-        // Assume events are ordered on timestamp in ascending order (old to new)
-        UsageEvents.Event usageEvent = new UsageEvents.Event();
-        while (usageEvents.getNextEvent(usageEvent)) {
-            // Ignore config changes
-            if (usageEvent.getEventType() == UsageEvents.Event.CONFIGURATION_CHANGE) {
-                continue;
-            }
-
-            boolean isSent = false;
-            if (isNewUsageEvent(usageEvent)) {
-                // New event, so previous event was a closing of the previous event (?)
-                // Send this closing event
-                if (previousEventPackageName != null && !previousEventIsSent)
-                    sendUsageEvent(previousEventPackageName, previousEventTimestamp, previousEventType);
-
-                // Send the opening of new event
-                sendUsageEvent(usageEvent);
-                isSent = true;
-            }
-
-            // If not already processed, save
-            updatePreviousUsageEvent(usageEvent, isSent);
-
-            usageEvent = new UsageEvents.Event();
-        }
-
-        // Store the last previous event on internal memory for the next run
-        this.storePreviousEvent();
-    }
-
-    private boolean isNewUsageEvent(UsageEvents.Event event) {
-        if (previousEventPackageName == null) {
-            return true;
-        }
-        boolean isDifferentPackage = ! event.getPackageName().equals(previousEventPackageName);
-        boolean isNotProcessed = event.getTimeStamp() >= previousEventTimestamp;
-
-        return isDifferentPackage && isNotProcessed;
-    }
-
-    private void updatePreviousUsageEvent(UsageEvents.Event event, boolean isSent) {
-        // Update if this event newer than recorded previous event
-        if (previousEventPackageName == null || event.getTimeStamp() >= previousEventTimestamp) {
-            previousEventPackageName = event.getPackageName();
-            previousEventTimestamp = event.getTimeStamp();
-            previousEventType = event.getEventType();
-            previousEventIsSent = isSent;
-        }
-    }
-
-    private void storePreviousEvent() {
-        if (previousEventPackageName == null) {
+        if (phoneUsageProcessor.isDone()) {
             return;
         }
 
-        preferences.edit()
-                .putString(PREVIOUS_PACKAGE_NAME, previousEventPackageName)
-                .putLong(PREVIOUS_TIMESTAMP, previousEventTimestamp)
-                .putInt(PREVIOUS_EVENT_TYPE, previousEventType)
-                .putBoolean(PREVIOUS_IS_SENT, previousEventIsSent)
-                .apply();
+        // Get events from previous event to now or from a fixed history
+        UsageEvents usageEvents = usageStatsManager.queryEvents(lastTimestamp, System.currentTimeMillis());
+
+        // Loop through all events, send opening and closing of app
+        // Assume events are ordered on timestamp in ascending order (old to new)
+        UsageEvents.Event event = new UsageEvents.Event();
+        while (usageEvents.getNextEvent(event) && !phoneUsageProcessor.isDone()) {
+            // Ignore config changes, old events, and events from the same activity
+            if (event.getEventType() == UsageEvents.Event.CONFIGURATION_CHANGE
+                    || event.getTimeStamp() < lastTimestamp) {
+                continue;
+            }
+
+            if (event.getPackageName().equals(lastPackageName)) {
+               updateLastEvent(event, false);
+           } else {
+                // send this closing event
+                if (lastPackageName != null && !lastEventIsSent) {
+                    sendLastEvent();
+                }
+
+                updateLastEvent(event, true);
+
+                // Send the opening of new event
+                sendLastEvent();
+            }
+        }
+
+        // Store the last previous event on internal memory for the next run
+        this.storeLastEvent();
     }
 
-    private void loadPreviousEvent() {
-        if (preferences.contains(PREVIOUS_PACKAGE_NAME)
-                && preferences.contains(PREVIOUS_EVENT_TYPE)
-                && preferences.contains(PREVIOUS_TIMESTAMP)
-                && preferences.contains(PREVIOUS_IS_SENT)) {
-            previousEventPackageName = preferences.getString(PREVIOUS_PACKAGE_NAME, null);
-            previousEventTimestamp = preferences.getLong(PREVIOUS_TIMESTAMP, 0);
-            previousEventType = preferences.getInt(PREVIOUS_EVENT_TYPE, 0);
-            previousEventIsSent = preferences.getBoolean(PREVIOUS_IS_SENT,false);
-        } else {
-            logger.warn("Unable to load the previous event details");
-            previousEventPackageName = null;
-            previousEventTimestamp = null;
-            previousEventType = null;
-            previousEventIsSent = false;
+    private void sendLastEvent() {
+        // Event type conversion to Schema defined
+        UsageEventType usageEventType = EVENT_TYPES.get(lastEventType, UsageEventType.OTHER);
+
+        double time = lastTimestamp / 1000d;
+        double timeReceived = System.currentTimeMillis() / 1000d;
+        PhoneUsageEvent value = new PhoneUsageEvent(
+                time, timeReceived, lastPackageName, null, null, usageEventType);
+        send(usageEventTopic, value);
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("Event: [{}] {}\n\t{}", lastEventType, lastPackageName, new Date(lastTimestamp));
         }
     }
 
-    private void sendUsageEvent(UsageEvents.Event event) {
-        sendUsageEvent(event.getPackageName(), event.getTimeStamp(), event.getEventType());
+    private void updateLastEvent(UsageEvents.Event event, boolean isSent) {
+        lastPackageName = event.getPackageName();
+        lastTimestamp = event.getTimeStamp();
+        lastEventType = event.getEventType();
+        lastEventIsSent = isSent;
     }
-    
-    private void sendUsageEvent(String packageName, long timeStamp, int eventType) {
-        // Event type conversion to Schema defined
-        UsageEventType usageEventType = EVENT_TYPES.get(eventType, UsageEventType.NONE);
 
-        double timeReceived = System.currentTimeMillis() / 1000d;
-        PhoneUsageEvent value = new PhoneUsageEvent(
-                timeStamp / 1000d, timeReceived, packageName, null, null, usageEventType);
-        send(usageEventTable, value);
+    private void storeLastEvent() {
+        preferences.edit()
+                .putString(LAST_PACKAGE_NAME, lastPackageName)
+                .putLong(LAST_EVENT_TIMESTAMP, lastTimestamp)
+                .putInt(LAST_EVENT_TYPE, lastEventType)
+                .putBoolean(LAST_EVENT_IS_SENT, lastEventIsSent)
+                .apply();
+    }
 
-        logger.info("Event: [{}] {}\n\t{}", eventType, packageName, new Date(timeStamp));
+    private void loadLastEvent() {
+        lastPackageName = preferences.getString(LAST_PACKAGE_NAME, null);
+        lastTimestamp = preferences.getLong(LAST_EVENT_TIMESTAMP, System.currentTimeMillis());
+        lastEventType = preferences.getInt(LAST_EVENT_TYPE, 0);
+        lastEventIsSent = preferences.getBoolean(LAST_EVENT_IS_SENT, true);
+
+        if (lastPackageName == null) {
+            logger.info("No previous event details stored");
+        }
     }
 
     @Override
     public void close() throws IOException {
+        phoneUsageProcessor.close();
+        PhoneUsageService context = getService();
+        context.unregisterReceiver(phoneStateReceiver);
         super.close();
     }
 }

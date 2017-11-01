@@ -16,8 +16,9 @@
 
 package org.radarcns.phone;
 
-import android.os.Parcelable;
-
+import android.os.Bundle;
+import android.support.annotation.NonNull;
+import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
 
@@ -26,21 +27,59 @@ import java.util.List;
 
 import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static org.radarcns.phone.PhoneSensorProvider.DEVICE_MODEL;
+import static org.radarcns.phone.PhoneSensorProvider.DEVICE_PRODUCER;
 
 public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState> {
+    private static final String PHONE_LOCATION_GPS_INTERVAL = "phone_location_gps_interval";
+    private static final String PHONE_LOCATION_GPS_INTERVAL_REDUCED = "phone_location_gps_interval_reduced";
+    private static final String PHONE_LOCATION_NETWORK_INTERVAL = "phone_location_network_interval";
+    private static final String PHONE_LOCATION_NETWORK_INTERVAL_REDUCED = "phone_location_network_interval_reduced";
+    private static final String PHONE_LOCATION_BATTERY_LEVEL_REDUCED = "phone_location_battery_level_reduced";
+    private static final String PHONE_LOCATION_BATTERY_LEVEL_MINIMUM = "phone_location_battery_level_minimum";
+
+    public static final String PREFIX = PhoneLocationProvider.class.getName() + '.';
+    public static final String INTERVAL_GPS_KEY = PREFIX + PHONE_LOCATION_GPS_INTERVAL;
+    public static final String INTERVAL_GPS_REDUCED_KEY = PREFIX + PHONE_LOCATION_GPS_INTERVAL_REDUCED;
+    public static final String INTERVAL_NETWORK_KEY = PREFIX + PHONE_LOCATION_NETWORK_INTERVAL;
+    public static final String INTERVAL_NETWORK_REDUCED_KEY = PREFIX + PHONE_LOCATION_NETWORK_INTERVAL_REDUCED;
+    public static final String MINIMUM_BATTERY_LEVEL_KEY = PREFIX + PHONE_LOCATION_BATTERY_LEVEL_REDUCED;
+    public static final String REDUCED_BATTERY_LEVEL_KEY = PREFIX + PHONE_LOCATION_BATTERY_LEVEL_MINIMUM;
+
+    private static final int LOCATION_GPS_INTERVAL_DEFAULT = 60*60; // seconds
+    private static final int LOCATION_GPS_INTERVAL_REDUCED_DEFAULT = 5 * LOCATION_GPS_INTERVAL_DEFAULT; // seconds
+    private static final int LOCATION_NETWORK_INTERVAL_DEFAULT = 10*60; // seconds
+    private static final int LOCATION_NETWORK_INTERVAL_REDUCED_DEFAULT = 5 * LOCATION_NETWORK_INTERVAL_DEFAULT; // seconds
+
+    private static final float MINIMUM_BATTERY_LEVEL_DEFAULT = 0.15f;
+    private static final float REDUCED_BATTERY_LEVEL_DEFAULT = 0.3f;
+
+    @Override
+    public String getDescription() {
+        return getRadarService().getString(R.string.phone_location_description);
+    }
+
     @Override
     public Class<?> getServiceClass() {
         return PhoneLocationService.class;
     }
 
     @Override
-    public Parcelable.Creator<BaseDeviceState> getStateCreator() {
-        return BaseDeviceState.CREATOR;
+    public String getDisplayName() {
+        return getRadarService().getString(R.string.phoneLocationServiceDisplayName);
     }
 
     @Override
-    public String getDisplayName() {
-        return getActivity().getString(R.string.phoneLocationServiceDisplayName);
+    protected void configure(Bundle bundle) {
+        super.configure(bundle);
+        RadarConfiguration config = getConfig();
+
+        bundle.putInt(INTERVAL_GPS_KEY, config.getInt(PHONE_LOCATION_GPS_INTERVAL, LOCATION_GPS_INTERVAL_DEFAULT));
+        bundle.putInt(INTERVAL_GPS_REDUCED_KEY, config.getInt(PHONE_LOCATION_GPS_INTERVAL_REDUCED, LOCATION_GPS_INTERVAL_REDUCED_DEFAULT));
+        bundle.putInt(INTERVAL_NETWORK_KEY, config.getInt(PHONE_LOCATION_NETWORK_INTERVAL, LOCATION_NETWORK_INTERVAL_DEFAULT));
+        bundle.putInt(INTERVAL_NETWORK_REDUCED_KEY, config.getInt(PHONE_LOCATION_NETWORK_INTERVAL_REDUCED, LOCATION_NETWORK_INTERVAL_REDUCED_DEFAULT));
+        bundle.putFloat(MINIMUM_BATTERY_LEVEL_KEY, config.getFloat(PHONE_LOCATION_BATTERY_LEVEL_REDUCED, REDUCED_BATTERY_LEVEL_DEFAULT));
+        bundle.putFloat(REDUCED_BATTERY_LEVEL_KEY, config.getFloat(PHONE_LOCATION_BATTERY_LEVEL_MINIMUM, MINIMUM_BATTERY_LEVEL_DEFAULT));
     }
 
     @Override
@@ -51,5 +90,23 @@ public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState
     @Override
     public boolean isDisplayable() {
         return false;
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceProducer() {
+        return DEVICE_PRODUCER;
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceModel() {
+        return DEVICE_MODEL;
+    }
+
+    @NonNull
+    @Override
+    public String getVersion() {
+        return BuildConfig.VERSION_NAME;
     }
 }
