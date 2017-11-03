@@ -21,8 +21,8 @@ android {
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 25
-        versionCode 3
-        versionName '0.1-alpha.3-SNAPSHOT'
+        versionCode 4
+        versionName '0.1'
     }
     buildTypes {
         release {
@@ -76,8 +76,8 @@ repositories {
 }
 
 dependencies {
-    compile 'org.radarcns:radar-commons-android:0.3-SNAPSHOT'
-    compile 'org.radarcns:radar-schemas-commons:0.2-alpha.3-SNAPSHOT'
+    compile 'org.radarcns:radar-commons-android:0.3'
+    compile 'org.radarcns:radar-schemas-commons:0.2'
 
     compile 'com.android.support:support-annotations:25.3.1'
 
@@ -137,6 +137,12 @@ ext.pomConfig = {
             id 'MaximMoinat'
             name 'Maxim Moinat'
             email 'maxim@thehyve.nl'
+            organization 'The Hyve'
+        }
+        developer {
+            id 'strangepleasures'
+            name 'Pavel Mikhailovskii'
+            email 'pavel@thehyve.nl'
             organization 'The Hyve'
         }
     }
