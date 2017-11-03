@@ -213,22 +213,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         // no action
     }
 
-    /**
-     * Convert event timestamp to seconds UTC
-     * Event timestamp is given in nanoseconds uptime
-     * First calculates the seconds passed since the event, by taking difference between current
-     * uptime and uptime at the moment of the event.
-     * Then this is substracted from the current UTC time.
-     * @param eventTimestampNanos nanoseconds uptime at event
-     * @return timestamp in seconds UTC
-     */
-    private static double eventTimestampToSecondsUTC(long eventTimestampNanos) {
-        double currentSeconds = System.currentTimeMillis() / 1_000d;
-        double secondsSinceEvent = (System.nanoTime() - eventTimestampNanos) / 1_000_000_000d;
-
-        return currentSeconds - secondsSinceEvent;
-    }
-
     private void processAcceleration(SensorEvent event) {
         // x,y,z are in m/s2
         float x = event.values[0] / SensorManager.GRAVITY_EARTH;
@@ -236,24 +220,18 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         float z = event.values[2] / SensorManager.GRAVITY_EARTH;
         getState().setAcceleration(x, y, z);
         
-        double timeReceived = System.currentTimeMillis() / 1_000d;
+        double time = System.currentTimeMillis() / 1_000d;
 
-        // nanoseconds uptime to seconds utc
-        double timestamp = eventTimestampToSecondsUTC(event.timestamp);
-
-        send(accelerationTopic, new PhoneAcceleration(timestamp, timeReceived, x, y, z));
+        send(accelerationTopic, new PhoneAcceleration(time, time, x, y, z));
     }
 
     private void processLight(SensorEvent event) {
         float lightValue = event.values[0];
         getState().setLight(lightValue);
         
-        double timeReceived = System.currentTimeMillis() / 1_000d;
-        
-        // nanoseconds uptime to seconds utc
-        double timestamp = eventTimestampToSecondsUTC(event.timestamp);
+        double time = System.currentTimeMillis() / 1_000d;
 
-        send(lightTopic, new PhoneLight(timestamp, timeReceived, lightValue));
+        send(lightTopic, new PhoneLight(time, time, lightValue));
     }
 
     private void processGyroscope(SensorEvent event) {
@@ -262,12 +240,9 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         float axisY = event.values[1];
         float axisZ = event.values[2];
 
-        double timeReceived = System.currentTimeMillis() / 1_000d;
+        double time = System.currentTimeMillis() / 1_000d;
 
-        // nanoseconds uptime to seconds utc
-        double timestamp = eventTimestampToSecondsUTC(event.timestamp);
-
-        send(gyroscopeTopic, new PhoneGyroscope(timestamp, timeReceived, axisX, axisY, axisZ));
+        send(gyroscopeTopic, new PhoneGyroscope(time, time, axisX, axisY, axisZ));
     }
 
     private void processMagneticField(SensorEvent event) {
@@ -276,22 +251,16 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         float axisY = event.values[1];
         float axisZ = event.values[2];
 
-        double timeReceived = System.currentTimeMillis() / 1_000d;
+        double time = System.currentTimeMillis() / 1_000d;
 
-        // nanoseconds uptime to seconds utc
-        double timestamp = eventTimestampToSecondsUTC(event.timestamp);
-        ;
-        send(magneticFieldTopic, new PhoneMagneticField(timestamp, timeReceived, axisX, axisY, axisZ));
+        send(magneticFieldTopic, new PhoneMagneticField(time, time, axisX, axisY, axisZ));
     }
 
     private void processStep(SensorEvent event) {
         // Number of step since listening or since reboot
         int stepCount = (int) event.values[0];
 
-        double timeReceived = System.currentTimeMillis() / 1_000d;
-
-        // nanoseconds uptime to seconds utc
-        double timestamp = eventTimestampToSecondsUTC(event.timestamp);
+        double time = System.currentTimeMillis() / 1_000d;
 
         // Send how many steps have been taken since the last time this function was triggered
         // Note: normally processStep() is called for every new step and the stepsSinceLastUpdate is 1
@@ -302,7 +271,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
             stepsSinceLastUpdate = stepCount - lastStepCount;
         }
         lastStepCount = stepCount;
-        send(stepCountTopic, new PhoneStepCount(timestamp, timeReceived, stepsSinceLastUpdate));
+        send(stepCountTopic, new PhoneStepCount(time, time, stepsSinceLastUpdate));
 
         logger.info("Steps taken: {}", stepsSinceLastUpdate);
     }
