@@ -16,56 +16,52 @@
 
 package org.radarcns.phone;
 
+import android.Manifest;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-import static android.Manifest.permission.READ_CALL_LOG;
-import static android.Manifest.permission.READ_SMS;
 import static org.radarcns.phone.PhoneSensorProvider.DEVICE_MODEL;
 import static org.radarcns.phone.PhoneSensorProvider.DEVICE_PRODUCER;
 
-public class PhoneLogProvider extends DeviceServiceProvider<BaseDeviceState> {
-    private static final String PREFIX = PhoneLogProvider.class.getName() + '.';
-    private static final String CALL_SMS_LOG_INTERVAL = "call_sms_log_interval_seconds";
-    public static final String CALL_SMS_LOG_INTERVAL_KEY = PREFIX + CALL_SMS_LOG_INTERVAL;
-    private static final long CALL_SMS_LOG_INTERVAL_DEFAULT = 24 * 60 * 60; // seconds
-
-    @Override
-    public Class<?> getServiceClass() {
-        return PhoneLogService.class;
-    }
+public class PhoneBluetoothProvider extends DeviceServiceProvider<BaseDeviceState> {
+    private static final String PHONE_PREFIX = "org.radarcns.phone.";
+    private static final String PHONE_BLUETOOTH_DEVICES_SCAN_INTERVAL = "bluetooth_devices_scan_interval_seconds";
+    public static final String PHONE_BLUETOOTH_DEVICES_SCAN_INTERVAL_KEY =  PHONE_PREFIX + PHONE_BLUETOOTH_DEVICES_SCAN_INTERVAL;
+    public static final long BLUETOOTH_DEVICES_SCAN_INTERVAL_DEFAULT = TimeUnit.HOURS.toSeconds(1);
 
     @Override
     public String getDescription() {
-        return getRadarService().getString(R.string.phone_log_description);
+        return getRadarService().getString(R.string.phone_bluetooth_description);
+    }
+
+    @Override
+    public Class<?> getServiceClass() {
+        return PhoneBluetoothService.class;
     }
 
     @Override
     public String getDisplayName() {
-        return getRadarService().getString(R.string.phoneLogServiceDisplayName);
+        return "Bluetooth Devices";
+    }
+
+    @Override
+    public List<String> needsPermissions() {
+        return Collections.singletonList(Manifest.permission.BLUETOOTH_ADMIN);
     }
 
     @Override
     protected void configure(Bundle bundle) {
         super.configure(bundle);
         RadarConfiguration config = getConfig();
-        bundle.putLong(CALL_SMS_LOG_INTERVAL_KEY, config.getLong(CALL_SMS_LOG_INTERVAL, CALL_SMS_LOG_INTERVAL_DEFAULT));
-    }
-
-    @Override
-    public List<String> needsPermissions() {
-        return Arrays.asList(READ_CALL_LOG, READ_SMS);
-    }
-
-    @Override
-    public boolean isDisplayable() {
-        return false;
+        bundle.putLong(PHONE_BLUETOOTH_DEVICES_SCAN_INTERVAL_KEY, config.getLong(
+                PHONE_BLUETOOTH_DEVICES_SCAN_INTERVAL, BLUETOOTH_DEVICES_SCAN_INTERVAL_DEFAULT));
     }
 
     @NonNull

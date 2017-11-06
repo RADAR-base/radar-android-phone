@@ -16,38 +16,60 @@
 
 package org.radarcns.phone;
 
+import android.os.Bundle;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
-import org.radarcns.android.device.DeviceStatusListener;
-import org.radarcns.android.util.PersistentStorage;
 
-import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
+import static org.radarcns.phone.PhoneLocationProvider.INTERVAL_GPS_KEY;
+import static org.radarcns.phone.PhoneLocationProvider.INTERVAL_GPS_REDUCED_KEY;
+import static org.radarcns.phone.PhoneLocationProvider.INTERVAL_NETWORK_KEY;
+import static org.radarcns.phone.PhoneLocationProvider.INTERVAL_NETWORK_REDUCED_KEY;
+import static org.radarcns.phone.PhoneLocationProvider.MINIMUM_BATTERY_LEVEL_KEY;
+import static org.radarcns.phone.PhoneLocationProvider.REDUCED_BATTERY_LEVEL_KEY;
 
-public class PhoneLocationService extends DeviceService {
-    private String sourceId;
+public class PhoneLocationService extends DeviceService<BaseDeviceState> {
+    private int gpsInterval;
+    private int gpsIntervalReduced;
+    private int networkInterval;
+    private int networkIntervalReduced;
+    private float batteryLevelMinimum;
+    private float batteryLevelReduced;
 
     @Override
-    protected DeviceManager createDeviceManager() {
-        return new PhoneLocationManager(this, getDataHandler(), getUserId(), getSourceId());
+    protected PhoneLocationManager createDeviceManager() {
+        PhoneLocationManager manager = new PhoneLocationManager(this);
+        configureManager(manager);
+        return manager;
     }
 
     @Override
     protected BaseDeviceState getDefaultState() {
-        BaseDeviceState state = new BaseDeviceState();
-        state.setStatus(DeviceStatusListener.Status.DISCONNECTED);
-        return state;
+        return new BaseDeviceState();
+    }
+
+    private void configureManager(PhoneLocationManager manager) {
+        manager.setBatteryLevels(batteryLevelMinimum, batteryLevelReduced);
+        manager.setIntervals(gpsInterval, gpsIntervalReduced, networkInterval, networkIntervalReduced);
     }
 
     @Override
-    protected PhoneLocationTopics getTopics() {
-        return PhoneLocationTopics.getInstance();
+    protected void onInvocation(Bundle bundle) {
+        super.onInvocation(bundle);
+        gpsInterval = bundle.getInt(INTERVAL_GPS_KEY);
+        gpsIntervalReduced = bundle.getInt(INTERVAL_GPS_REDUCED_KEY);
+        networkInterval = bundle.getInt(INTERVAL_NETWORK_KEY);
+        networkIntervalReduced = bundle.getInt(INTERVAL_NETWORK_REDUCED_KEY);
+        batteryLevelMinimum = bundle.getFloat(MINIMUM_BATTERY_LEVEL_KEY);
+        batteryLevelReduced = bundle.getFloat(REDUCED_BATTERY_LEVEL_KEY);
+        DeviceManager manager = getDeviceManager();
+        if (manager != null) {
+            configureManager((PhoneLocationManager) getDeviceManager());
+        }
     }
 
-    public String getSourceId() {
-        if (sourceId == null) {
-            sourceId = new PersistentStorage(getClass()).loadOrStoreUUID(SOURCE_ID_KEY);
-        }
-        return sourceId;
+    @Override
+    protected boolean isBluetoothConnectionRequired() {
+        return false;
     }
 }

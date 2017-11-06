@@ -2,4 +2,27 @@
     <string name="phoneServiceDisplayName">Phone</string>
     <string name="phoneLocationServiceDisplayName">Location</string>
     <string name="phoneLogServiceDisplayName">Call/SMS</string>
+    <string name="phoneUsageServiceDisplayName">App Usage</string>
+    <string name="location_manager_name">%1$s location</string>
+    <string name="call_log_service_name">%1$s call log</string>
+    <string name="app_usage_service_name">%1$s app usage</string>
+    <string name="phone_log_description">Collects call and sms logs. Only the call and sms length
+        are recorded, not their contents. Phone numbers are completely anonymised so they cannot be
+        traced or linked to other people.
+    </string>
+    <string name="phone_location_description">Location is used for estimating distance travelled.
+        Only relative locations are gathered, the actual location is not stored.
+    </string>
+    <string name="phone_contact_list_description">Counts the number of contacts stored on your
+        phone. No information about the contacts themselves are gathered.
+    </string>
+    <string name="phone_bluetooth_description">Assess the number of Bluetooth devices that are
+        within range or connected. No connections are made. Data is only collected if Bluetooth is
+        turned on.
+    </string>
+    <string name="phone_sensors_description">Phone sensors like acceleration and step counts.
+    </string>
+    <string name="phone_usage_description">Phone usage measures what apps are used and how long the
+        phone is turned on.
+    </string>
 </resources>

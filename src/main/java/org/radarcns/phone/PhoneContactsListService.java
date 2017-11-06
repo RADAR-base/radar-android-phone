@@ -17,17 +17,21 @@
 package org.radarcns.phone;
 
 import android.os.Bundle;
+import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
+import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
-import static org.radarcns.phone.PhoneLogProvider.CALL_SMS_LOG_INTERVAL_KEY;
+import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
+import static org.radarcns.phone.PhoneContactListProvider.PHONE_CONTACTS_LIST_INTERVAL_DEFAULT;
+import static org.radarcns.phone.PhoneContactListProvider.PHONE_CONTACTS_LIST_INTERVAL_KEY;
 
-public class PhoneLogService extends DeviceService<BaseDeviceState> {
-    private long logInterval;
+public class PhoneContactsListService extends DeviceService<BaseDeviceState> {
+    private volatile long checkInterval = PHONE_CONTACTS_LIST_INTERVAL_DEFAULT;
 
     @Override
-    protected PhoneLogManager createDeviceManager() {
-        return new PhoneLogManager(this, logInterval);
+    protected PhoneContactListManager createDeviceManager() {
+        return new PhoneContactListManager(this);
     }
 
     @Override
@@ -35,13 +39,18 @@ public class PhoneLogService extends DeviceService<BaseDeviceState> {
         return new BaseDeviceState();
     }
 
+    public long getCheckInterval() {
+        return checkInterval;
+    }
+
     @Override
     protected void onInvocation(Bundle bundle) {
         super.onInvocation(bundle);
-        logInterval = bundle.getLong(CALL_SMS_LOG_INTERVAL_KEY);
-        PhoneLogManager deviceManager = (PhoneLogManager) getDeviceManager();
-        if (deviceManager != null) {
-            deviceManager.setCallAndSmsLogUpdateRate(logInterval);
+        checkInterval = bundle.getLong(PHONE_CONTACTS_LIST_INTERVAL_KEY);
+
+        PhoneContactListManager manager = (PhoneContactListManager) getDeviceManager();
+        if (manager != null) {
+            manager.setCheckInterval(checkInterval);
         }
     }
 

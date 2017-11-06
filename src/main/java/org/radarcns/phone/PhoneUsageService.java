@@ -20,14 +20,18 @@ import android.os.Bundle;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceService;
 
-import static org.radarcns.phone.PhoneLogProvider.CALL_SMS_LOG_INTERVAL_KEY;
+import static org.radarcns.phone.PhoneUsageProvider.PHONE_USAGE_INTERVAL_KEY;
 
-public class PhoneLogService extends DeviceService<BaseDeviceState> {
-    private long logInterval;
+/**
+ * A service that manages the phone sensor manager and a TableDataHandler to send store the data of
+ * the phone sensors and send it to a Kafka REST proxy.
+ */
+public class PhoneUsageService extends DeviceService<BaseDeviceState> {
+    private long usageEventInterval;
 
     @Override
-    protected PhoneLogManager createDeviceManager() {
-        return new PhoneLogManager(this, logInterval);
+    protected PhoneUsageManager createDeviceManager() {
+        return new PhoneUsageManager(this, usageEventInterval);
     }
 
     @Override
@@ -38,10 +42,11 @@ public class PhoneLogService extends DeviceService<BaseDeviceState> {
     @Override
     protected void onInvocation(Bundle bundle) {
         super.onInvocation(bundle);
-        logInterval = bundle.getLong(CALL_SMS_LOG_INTERVAL_KEY);
-        PhoneLogManager deviceManager = (PhoneLogManager) getDeviceManager();
-        if (deviceManager != null) {
-            deviceManager.setCallAndSmsLogUpdateRate(logInterval);
+        usageEventInterval = bundle.getLong(PHONE_USAGE_INTERVAL_KEY);
+
+        PhoneUsageManager manager = (PhoneUsageManager) getDeviceManager();
+        if (manager != null) {
+            manager.setUsageEventUpdateRate(usageEventInterval);
         }
     }
 

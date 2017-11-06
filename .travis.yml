@@ -1,0 +1,44 @@
+language: android
+jdk: oraclejdk8
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/3.*.*
+cache:
+  directories:
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
+
+android:
+  components:
+    - tools
+    - platform-tools
+    - tools
+    - build-tools-26.0.1
+    - android-26
+    - extra-android-m2repository
+    - extra-android-support
+    - extra-google-google_play_services
+    - extra-google-m2repository
+
+script: TERM=dumb ./gradlew check assembleDebug
+
+deploy:
+  - provider: releases
+    api_key: ${GH_TOKEN}
+    file_glob: true
+    file:
+      - "build/outputs/aar/*.aar"
+      - "build/libs/*.jar"
+    skip_cleanup: true
+    on:
+      tags: true
+  - provider: script
+    script: ./gradlew artifactoryPublish
+    skip_cleanup: true
+    on:
+      branch: dev
+  - provider: script
+    script: ./gradlew bintrayUpload
+    skip_cleanup: true
+    on:
+      tags: true
