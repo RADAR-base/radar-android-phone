@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-    compile 'org.radarcns:radar-android-phone:0.1-alpha.1'
+    compile 'org.radarcns:radar-android-phone:0.1.1'
 }
 ```
 
