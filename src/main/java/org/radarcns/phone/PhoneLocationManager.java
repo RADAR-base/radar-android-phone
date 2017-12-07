@@ -280,7 +280,9 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         }
         if (Double.isNaN(altitudeReference)) {
             altitudeReference = absoluteAltitude;
-            preferences.edit().putString(ALTITUDE_REFERENCE, Double.toString(altitudeReference)).apply();
+            preferences.edit()
+                    .putLong(ALTITUDE_REFERENCE, Double.doubleToLongBits(altitudeReference))
+                    .apply();
         }
         return (float)(absoluteAltitude - altitudeReference);
     }
