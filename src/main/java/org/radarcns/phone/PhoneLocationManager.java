@@ -98,7 +98,18 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
                 && preferences.contains(ALTITUDE_REFERENCE)) {
             latitudeReference = new BigDecimal(preferences.getString(LATITUDE_REFERENCE, null));
             longitudeReference = new BigDecimal(preferences.getString(LONGITUDE_REFERENCE, null));
-            altitudeReference = Double.longBitsToDouble(preferences.getLong(ALTITUDE_REFERENCE, Double.doubleToLongBits(Double.NaN)));
+            try {
+                altitudeReference = Double.longBitsToDouble(preferences.getLong(ALTITUDE_REFERENCE, Double.doubleToLongBits(Double.NaN)));
+            } catch (ClassCastException ex) {
+                // to fix bug where this was stored as String
+                altitudeReference = Double.valueOf(preferences.getString(ALTITUDE_REFERENCE, "-10000.0"));
+                if (altitudeReference == -10000.0) {
+                    altitudeReference = Double.NaN;
+                }
+                preferences.edit()
+                        .putLong(ALTITUDE_REFERENCE, Double.doubleToLongBits(altitudeReference))
+                        .apply();
+            }
         } else {
             latitudeReference = null;
             longitudeReference = null;
@@ -245,7 +256,6 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
             // corresponds mildly with the UTM zones used to make flat coordinates estimations.
             double reference = ThreadLocalRandom.current().nextDouble(-4, 4); // interval [-4,4)
             latitudeReference = BigDecimal.valueOf(reference);
-            preferences.edit().putString(LATITUDE_REFERENCE, latitudeReference.toString()).apply();
         }
 
         return latitude.subtract(latitudeReference).doubleValue();
@@ -258,7 +268,6 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         BigDecimal longitude = BigDecimal.valueOf(absoluteLongitude);
         if (longitudeReference == null) {
             longitudeReference = longitude;
-            preferences.edit().putString(LONGITUDE_REFERENCE, longitude.toString()).apply();
         }
 
         double relativeLongitude = longitude.subtract(longitudeReference).doubleValue();
@@ -280,7 +289,6 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         }
         if (Double.isNaN(altitudeReference)) {
             altitudeReference = absoluteAltitude;
-            preferences.edit().putString(ALTITUDE_REFERENCE, Double.toString(altitudeReference)).apply();
         }
         return (float)(absoluteAltitude - altitudeReference);
     }

@@ -25,4 +25,6 @@
     <string name="phone_usage_description">Phone usage measures what apps are used and how long the
         phone is turned on.
     </string>
+    <string name="contact_list">Contacts List</string>
+    <string name="bluetooth_devices">Bluetooth Devices</string>
 </resources>
