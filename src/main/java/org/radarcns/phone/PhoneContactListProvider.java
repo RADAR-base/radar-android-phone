@@ -48,7 +48,12 @@ public class PhoneContactListProvider extends DeviceServiceProvider<BaseDeviceSt
 
     @Override
     public String getDisplayName() {
-        return "Contacts List";
+        return getRadarService().getString(R.string.contact_list);
+    }
+
+    @Override
+    public boolean isDisplayable() {
+        return false;
     }
 
     @Override

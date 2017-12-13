@@ -48,7 +48,12 @@ public class PhoneBluetoothProvider extends DeviceServiceProvider<BaseDeviceStat
 
     @Override
     public String getDisplayName() {
-        return "Bluetooth Devices";
+        return getRadarService().getString(R.string.bluetooth_devices);
+    }
+
+    @Override
+    public boolean isDisplayable() {
+        return false;
     }
 
     @Override
