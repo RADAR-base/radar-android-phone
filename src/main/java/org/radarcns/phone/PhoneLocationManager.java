@@ -16,6 +16,7 @@
 
 package org.radarcns.phone;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.location.Location;
@@ -188,6 +189,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
 
     public synchronized void setLocationUpdateRate(final long periodGPS, final long periodNetwork) {
         handler.post(new Runnable() {
+             @SuppressLint("MissingPermission")
              @Override
              public void run() {
                  if (!isStarted) {
@@ -198,7 +200,9 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
                  locationManager.removeUpdates(PhoneLocationManager.this);
 
                  // Initialize with last known and start listening
-                 if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                 if (periodGPS <= 0) {
+                     logger.info("Location GPS gathering disabled in settings");
+                 } else if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                      onLocationChanged(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
                      locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, periodGPS * 1000, 0, PhoneLocationManager.this);
                      logger.info("Location GPS listener activated and set to a period of {}", periodGPS);
@@ -206,7 +210,9 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
                      logger.warn("Location GPS listener not found");
                  }
 
-                 if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                 if (periodNetwork <= 0) {
+                     logger.info("Location network gathering disabled in settings");
+                 } else if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
                      onLocationChanged(locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER));
                      locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, periodNetwork * 1000, 0, PhoneLocationManager.this);
                      logger.info("Location Network listener activated and set to a period of {}", periodNetwork);

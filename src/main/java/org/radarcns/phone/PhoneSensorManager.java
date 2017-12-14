@@ -16,6 +16,7 @@
 
 package org.radarcns.phone;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -46,7 +47,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static android.content.Context.POWER_SERVICE;
 import static android.os.BatteryManager.BATTERY_STATUS_CHARGING;
@@ -119,7 +122,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         batteryLevelReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, final Intent intent) {
-                if (intent.getAction().equals(Intent.ACTION_BATTERY_CHANGED)) {
+                if (Objects.equals(intent.getAction(), Intent.ACTION_BATTERY_CHANGED)) {
                     mHandler.post(new Runnable() {
                         @Override
                         public void run() {
@@ -133,13 +136,16 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         setName(android.os.Build.MODEL);
     }
 
+    @SuppressLint("WakelockTimeout")
     @Override
     public void start(@NonNull final Set<String> acceptableIds) {
         updateStatus(DeviceStatusListener.Status.READY);
         PowerManager powerManager = (PowerManager) getService().getSystemService(POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                "PhoneSensorManager");
-        wakeLock.acquire();
+        if (powerManager != null) {
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                    "PhoneSensorManager");
+            wakeLock.acquire();
+        }
 
         mHandlerThread.start();
         mHandler = new Handler(mHandlerThread.getLooper());
@@ -175,10 +181,12 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         // At time of writing this is: Accelerometer, Light, Gyroscope, Magnetic Field and Step Counter
         for (int sensorType : SENSOR_TYPES_TO_REGISTER) {
             if (sensorManager.getDefaultSensor(sensorType) != null) {
-                Sensor sensor = sensorManager.getDefaultSensor(sensorType);
                 // delay from milliseconds to microseconds
-                int delay = 1000 * sensorDelays.get(sensorType, PHONE_SENSOR_INTERVAL_DEFAULT);
-                sensorManager.registerListener(this, sensor, delay, mHandler);
+                int delay = (int) TimeUnit.MILLISECONDS.toMicros(sensorDelays.get(sensorType, PHONE_SENSOR_INTERVAL_DEFAULT));
+                if (delay > 0) {
+                    Sensor sensor = sensorManager.getDefaultSensor(sensorType);
+                    sensorManager.registerListener(this, sensor, delay, mHandler);
+                }
             } else {
                 logger.warn("The sensor '{}' could not be found", SENSOR_NAMES.get(sensorType,"unknown"));
             }
@@ -300,7 +308,9 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     public void close() throws IOException {
         getService().unregisterReceiver(batteryLevelReceiver);
         sensorManager.unregisterListener(this);
-        wakeLock.release();
+        if (wakeLock != null) {
+            wakeLock.release();
+        }
         mHandler = null;
         mHandlerThread.quitSafely();
         super.close();

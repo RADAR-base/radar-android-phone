@@ -22,7 +22,7 @@ import android.database.Cursor;
 import android.provider.BaseColumns;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
-import avro.shaded.com.google.common.collect.Sets;
+
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
@@ -32,6 +32,7 @@ import org.radarcns.passive.phone.PhoneContactList;
 import org.radarcns.topic.AvroTopic;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -81,8 +82,8 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
         Integer removed = null;
 
         if (savedContactIds != null) {
-            added = Sets.difference(newContactIds, savedContactIds).size();
-            removed = Sets.difference(savedContactIds, newContactIds).size();
+            added = differenceSize(newContactIds, savedContactIds);
+            removed = differenceSize(savedContactIds, newContactIds);
         }
 
         savedContactIds = newContactIds;
@@ -92,12 +93,22 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
         send(contactsTopic, new PhoneContactList(timestamp, timestamp, added, removed, newContactIds.size()));
     }
 
+    private static int differenceSize(Collection<?> collectionA, Collection<?> collectionB) {
+        int diff = 0;
+        for (Object o : collectionA) {
+            if (!collectionB.contains(o)) {
+                diff++;
+            }
+        }
+        return diff;
+    }
+
     private Set<String> getContactIds() {
         Set<String> contactIds = new HashSet<>();
 
         try (Cursor cursor = getService().getContentResolver().query(ContactsContract.Contacts.CONTENT_URI,
                 PROJECTION, null, null, null)) {
-            if (cursor.moveToFirst()) {
+            if (cursor != null && cursor.moveToFirst()) {
                 while (!cursor.isAfterLast()) {
                     contactIds.add(cursor.getString(0));
                     cursor.moveToNext();

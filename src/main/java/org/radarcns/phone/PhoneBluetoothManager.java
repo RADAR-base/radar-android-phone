@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.support.annotation.NonNull;
+
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
@@ -30,11 +31,15 @@ import org.radarcns.android.util.OfflineProcessor;
 import org.radarcns.kafka.ObservationKey;
 import org.radarcns.passive.phone.PhoneBluetoothDevices;
 import org.radarcns.topic.AvroTopic;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Set;
 
 public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothService, BaseDeviceState> implements Runnable {
+    private static final Logger logger = LoggerFactory.getLogger(PhoneBluetoothManager.class);
+
     private static final int SCAN_DEVICES_REQUEST_CODE = 3248902;
     private static final String ACTION_SCAN_DEVICES = "org.radarcns.phone.PhoneBluetoothManager.ACTION_SCAN_DEVICES";
     private final OfflineProcessor processor;
@@ -60,6 +65,10 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
     @Override
     public void run() {
         final BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (bluetoothAdapter == null) {
+            logger.error("Bluetooth is not available.");
+            return;
+        }
         final boolean wasEnabled = bluetoothAdapter.isEnabled();
 
         if (!wasEnabled) {
@@ -75,7 +84,11 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
 
             @Override
             public void onReceive(Context context, Intent intent) {
-                switch (intent.getAction()) {
+                String action = intent.getAction();
+                if (action == null) {
+                    return;
+                }
+                switch (action) {
                     case BluetoothDevice.ACTION_FOUND: {
                         numberOfDevices++;
                         break;
