@@ -18,14 +18,14 @@ dependencies {
 
 ## Configuration
 
-This plugin contains six services, to enable them add their provider to the `device_service_to_connect` property of the configuration:
+This plugin contains six services, to enable them add their provider to the `device_services_to_connect` property of the configuration:
 
-- `PhoneSensorProvider` provides a service that monitors Android hardware sensors.
-- `PhoneLogProvider` provides a service that periodically reads the metadata of phone logs of SMSes and calls made. Phone numbers are irreversibly hashed before transmission.
-- `PhoneLocationProvider` provides a service that monitors current GPS and/or network location. Location data is gathered in a relative manner, adding a random reference offset to all locations. The reference offset is not transmitted. Because the GPS sensor is generally battery-heavy, there are separate parameters for location update frequency for low battery levels and higher battery levels.
-- `PhoneUsageProvider` provides a service that monitors application usage. Application usage events are only gathered for Android 5.1 and later.
-- `PhoneBluetoothProvider` provides a service that monitors bluetooth usage.
-- `PhoneContactListProvider` provides a service that monitors contact list size. Phone contacts themselves are not transmitted.
+- `.phone.PhoneSensorProvider` provides a service that monitors Android hardware sensors.
+- `.phone.PhoneLogProvider` provides a service that periodically reads the metadata of phone logs of SMSes and calls made. Phone numbers are irreversibly hashed before transmission.
+- `.phone.PhoneLocationProvider` provides a service that monitors current GPS and/or network location. Location data is gathered in a relative manner, adding a random reference offset to all locations. The reference offset is not transmitted. Because the GPS sensor is generally battery-heavy, there are separate parameters for location update frequency for low battery levels and higher battery levels.
+- `.phone.PhoneUsageProvider` provides a service that monitors application usage. Application usage events are only gathered for Android 5.1 and later.
+- `.phone.PhoneBluetoothProvider` provides a service that monitors bluetooth usage.
+- `.phone.PhoneContactListProvider` provides a service that monitors contact list size. Phone contacts themselves are not transmitted.
 
 ### Sensors
 
