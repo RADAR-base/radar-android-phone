@@ -21,6 +21,7 @@ import android.app.usage.UsageStatsManager;
 import android.content.*;
 import android.os.Build;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.SparseArray;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
@@ -64,13 +65,18 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     private static final String ACTION_UPDATE_EVENTS = "org.radarcns.phone.PhoneUsageManager.ACTION_UPDATE_EVENTS";
     private static final int USAGE_EVENT_REQUEST_CODE = 586106;
 
+    @Nullable
     private final AvroTopic<ObservationKey, PhoneUsageEvent> usageEventTopic;
+    @NonNull
     private final AvroTopic<ObservationKey, PhoneUserInteraction> userInteractionTopic;
 
+    @NonNull
     private final BroadcastReceiver phoneStateReceiver;
-
+    @Nullable
     private final UsageStatsManager usageStatsManager;
+    @NonNull
     private final SharedPreferences preferences;
+    @NonNull
     private final OfflineProcessor phoneUsageProcessor;
 
     private String lastPackageName;
