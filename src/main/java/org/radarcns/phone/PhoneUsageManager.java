@@ -19,6 +19,7 @@ package org.radarcns.phone;
 import android.app.usage.UsageEvents;
 import android.app.usage.UsageStatsManager;
 import android.content.*;
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
 import org.radarcns.android.device.AbstractDeviceManager;
@@ -81,9 +82,18 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         super(context);
 
         userInteractionTopic = createTopic("android_phone_user_interaction", PhoneUserInteraction.class);
-        usageEventTopic = createTopic("android_phone_usage_event", PhoneUsageEvent.class);
 
-        this.usageStatsManager = (UsageStatsManager) context.getSystemService("usagestats");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+            this.usageStatsManager = (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
+        } else {
+            this.usageStatsManager = null;
+        }
+        if (usageStatsManager != null) {
+            usageEventTopic = createTopic("android_phone_usage_event", PhoneUsageEvent.class);
+        } else {
+            logger.warn("Usage statistics are not available.");
+            usageEventTopic = null;
+        }
         this.preferences = context.getSharedPreferences(PhoneUsageService.class.getName(), Context.MODE_PRIVATE);
         this.loadLastEvent();
 
@@ -103,7 +113,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         phoneUsageProcessor = new OfflineProcessor(context, this, USAGE_EVENT_REQUEST_CODE,
                 ACTION_UPDATE_EVENTS, usageEventInterval, false);
 
-        setName(String.format(context.getString(R.string.app_usage_service_name), android.os.Build.MODEL));
+        setName(String.format(context.getString(R.string.app_usage_service_name), Build.MODEL));
     }
 
     @Override
@@ -170,7 +180,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     }
 
     private void processUsageEvents() {
-        if (phoneUsageProcessor.isDone()) {
+        if (phoneUsageProcessor.isDone() || usageStatsManager == null) {
             return;
         }
 

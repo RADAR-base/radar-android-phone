@@ -16,6 +16,7 @@
 
 package org.radarcns.phone;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.location.Location;
@@ -188,6 +189,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
 
     public synchronized void setLocationUpdateRate(final long periodGPS, final long periodNetwork) {
         handler.post(new Runnable() {
+             @SuppressLint("MissingPermission")
              @Override
              public void run() {
                  if (!isStarted) {
