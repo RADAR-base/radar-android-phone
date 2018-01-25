@@ -93,11 +93,13 @@ repositories {
     jcenter()
     google()
     maven { url 'https://oss.jfrog.org/artifactory/oss-snapshot-local' }
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
-    api 'org.radarcns:radar-commons-android:0.5.2'
-    implementation 'org.radarcns:radar-schemas-commons:0.2.3'
+    //api 'org.radarcns:radar-commons-android:0.5.2'
+    //implementation 'org.radarcns:radar-schemas-commons:0.2.3'
+    api project(':commons-android')
 
     api 'com.android.support:support-annotations:27.0.2'
 
