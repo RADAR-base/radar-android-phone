@@ -19,7 +19,6 @@ package org.radarcns.phone;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.provider.BaseColumns;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 
@@ -30,6 +29,8 @@ import org.radarcns.android.util.OfflineProcessor;
 import org.radarcns.kafka.ObservationKey;
 import org.radarcns.passive.phone.PhoneContactList;
 import org.radarcns.topic.AvroTopic;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -37,16 +38,21 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import static android.provider.ContactsContract.ContactsColumns.LOOKUP_KEY;
+
 public class PhoneContactListManager extends AbstractDeviceManager<PhoneContactsListService, BaseDeviceState> implements Runnable {
+    private static final Logger logger = LoggerFactory.getLogger(PhoneContactListManager.class);
+
     private static final int CONTACTS_LIST_UPDATE_REQUEST_CODE = 15765692;
     private static final String ACTION_UPDATE_CONTACTS_LIST = "org.radarcns.phone.PhoneContactListManager.ACTION_UPDATE_CONTACTS_LIST";
-    private static final String[] PROJECTION = {BaseColumns._ID};
+    private static final String[] LOOKUP_COLUMNS = {LOOKUP_KEY};
     public static final String CONTACT_IDS = "contact_ids";
+    public static final String CONTACT_LOOKUPS = "contact_lookups";
 
     private final SharedPreferences preferences;
     private final OfflineProcessor processor;
     private final AvroTopic<ObservationKey, PhoneContactList> contactsTopic;
-    private Set<String> savedContactIds;
+    private Set<String> savedContactLookups;
 
     public PhoneContactListManager(PhoneContactsListService service) {
         super(service);
@@ -62,7 +68,11 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
     public void start(@NonNull Set<String> set) {
         updateStatus(DeviceStatusListener.Status.READY);
 
-        savedContactIds = preferences.getStringSet(CONTACT_IDS, Collections.<String>emptySet());
+        preferences.edit()
+                .remove(CONTACT_IDS)
+                .apply();
+
+        savedContactLookups = preferences.getStringSet(CONTACT_LOOKUPS, Collections.<String>emptySet());
         processor.start();
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
@@ -76,21 +86,25 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
 
     @Override
     public void run() {
-        Set<String> newContactIds = getContactIds();
+        try {
+            Set<String> newContactLookups = getContactLookups();
 
-        Integer added = null;
-        Integer removed = null;
+            Integer added = null;
+            Integer removed = null;
 
-        if (savedContactIds != null) {
-            added = differenceSize(newContactIds, savedContactIds);
-            removed = differenceSize(savedContactIds, newContactIds);
+            if (!savedContactLookups.isEmpty()) {
+                added = differenceSize(newContactLookups, savedContactLookups);
+                removed = differenceSize(savedContactLookups, newContactLookups);
+            }
+
+            savedContactLookups = newContactLookups;
+            preferences.edit().putStringSet(CONTACT_LOOKUPS, savedContactLookups).apply();
+
+            double timestamp = System.currentTimeMillis() / 1000.0;
+            send(contactsTopic, new PhoneContactList(timestamp, timestamp, added, removed, newContactLookups.size()));
+        } catch (RuntimeException ex) {
+            logger.error("Failed to lookup contact IDs", ex);
         }
-
-        savedContactIds = newContactIds;
-        preferences.edit().putStringSet(CONTACT_IDS, savedContactIds).apply();
-
-        double timestamp = System.currentTimeMillis() / 1000.0;
-        send(contactsTopic, new PhoneContactList(timestamp, timestamp, added, removed, newContactIds.size()));
     }
 
     private static int differenceSize(Collection<?> collectionA, Collection<?> collectionB) {
@@ -103,11 +117,11 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
         return diff;
     }
 
-    private Set<String> getContactIds() {
+    private Set<String> getContactLookups() {
         Set<String> contactIds = new HashSet<>();
 
         try (Cursor cursor = getService().getContentResolver().query(ContactsContract.Contacts.CONTENT_URI,
-                PROJECTION, null, null, null)) {
+                LOOKUP_COLUMNS, null, null, null)) {
             if (cursor != null && cursor.moveToFirst()) {
                 while (!cursor.isAfterLast()) {
                     contactIds.add(cursor.getString(0));
