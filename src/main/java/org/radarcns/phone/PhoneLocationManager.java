@@ -111,17 +111,18 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         String longitudeString = preferences.getString(LONGITUDE_REFERENCE, null);
         longitudeReference = longitudeString != null ? new BigDecimal(longitudeString) : null;
 
-        try {
-            altitudeReference = Double.longBitsToDouble(preferences.getLong(ALTITUDE_REFERENCE, Double.doubleToLongBits(Double.NaN)));
-        } catch (ClassCastException ex) {
-            // to fix bug where this was stored as String
-            altitudeReference = Double.valueOf(preferences.getString(ALTITUDE_REFERENCE, "-10000.0"));
-            if (altitudeReference == -10000.0) {
-                altitudeReference = Double.NaN;
+        if (preferences.contains(ALTITUDE_REFERENCE)) {
+            try {
+                altitudeReference = Double.longBitsToDouble(preferences.getLong(ALTITUDE_REFERENCE, 0));
+            } catch (ClassCastException ex) {
+                // to fix bug where this was stored as String
+                altitudeReference = Double.valueOf(preferences.getString(ALTITUDE_REFERENCE, null));
+                preferences.edit()
+                        .putLong(ALTITUDE_REFERENCE, Double.doubleToLongBits(altitudeReference))
+                        .apply();
             }
-            preferences.edit()
-                    .putLong(ALTITUDE_REFERENCE, Double.doubleToLongBits(altitudeReference))
-                    .apply();
+        } else {
+            altitudeReference = Double.NaN;
         }
     }
 
