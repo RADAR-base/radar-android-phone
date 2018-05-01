@@ -20,7 +20,7 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath 'com.android.tools.build:gradle:3.1.2'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.0'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:2.0'
         classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.5.4'
@@ -35,7 +35,7 @@ apply plugin: 'maven-publish'
 
 android {
     compileSdkVersion 27
-    buildToolsVersion '27.0.1'
+    buildToolsVersion '27.0.3'
 
     defaultConfig {
         minSdkVersion 21
@@ -96,10 +96,10 @@ repositories {
 }
 
 dependencies {
-    api 'org.radarcns:radar-commons-android:0.5.2'
-    implementation 'org.radarcns:radar-schemas-commons:0.2.3'
+    api 'org.radarcns:radar-commons-android:0.6'
+    implementation 'org.radarcns:radar-schemas-commons:0.3.2'
 
-    api 'com.android.support:support-annotations:27.0.2'
+    api 'com.android.support:support-annotations:27.1.1'
 
     testImplementation 'junit:junit:4.12'
     testRuntimeOnly 'org.slf4j:slf4j-simple:1.7.25'
@@ -193,5 +193,4 @@ artifactoryPublish {
 
 task wrapper(type: Wrapper) {
     gradleVersion = '4.4'
-    distributionType 'all'
 }
