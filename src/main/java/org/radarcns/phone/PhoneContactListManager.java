@@ -16,10 +16,10 @@
 
 package org.radarcns.phone;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.provider.BaseColumns;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 
@@ -30,6 +30,8 @@ import org.radarcns.android.util.OfflineProcessor;
 import org.radarcns.kafka.ObservationKey;
 import org.radarcns.passive.phone.PhoneContactList;
 import org.radarcns.topic.AvroTopic;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -38,15 +40,19 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class PhoneContactListManager extends AbstractDeviceManager<PhoneContactsListService, BaseDeviceState> implements Runnable {
+    private static final Logger logger = LoggerFactory.getLogger(PhoneContactListManager.class);
+
     private static final int CONTACTS_LIST_UPDATE_REQUEST_CODE = 15765692;
     private static final String ACTION_UPDATE_CONTACTS_LIST = "org.radarcns.phone.PhoneContactListManager.ACTION_UPDATE_CONTACTS_LIST";
-    private static final String[] PROJECTION = {BaseColumns._ID};
+    private static final String[] LOOKUP_COLUMNS = {ContactsContract.Contacts.LOOKUP_KEY};
     public static final String CONTACT_IDS = "contact_ids";
+    public static final String CONTACT_LOOKUPS = "contact_lookups";
 
     private final SharedPreferences preferences;
     private final OfflineProcessor processor;
     private final AvroTopic<ObservationKey, PhoneContactList> contactsTopic;
-    private Set<String> savedContactIds;
+    private final ContentResolver db;
+    private Set<String> savedContactLookups;
 
     public PhoneContactListManager(PhoneContactsListService service) {
         super(service);
@@ -56,13 +62,19 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
 
         processor = new OfflineProcessor(service, this, CONTACTS_LIST_UPDATE_REQUEST_CODE,
                 ACTION_UPDATE_CONTACTS_LIST, service.getCheckInterval(), false);
+        db = service.getContentResolver();
     }
 
     @Override
     public void start(@NonNull Set<String> set) {
         updateStatus(DeviceStatusListener.Status.READY);
 
-        savedContactIds = preferences.getStringSet(CONTACT_IDS, Collections.<String>emptySet());
+        // deprecated using contact _ID, using LOOKUP instead.
+        preferences.edit()
+                .remove(CONTACT_IDS)
+                .apply();
+
+        savedContactLookups = preferences.getStringSet(CONTACT_LOOKUPS, Collections.<String>emptySet());
         processor.start();
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
@@ -76,21 +88,28 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
 
     @Override
     public void run() {
-        Set<String> newContactIds = getContactIds();
+        try {
+            Set<String> newContactLookups = getContactLookups();
 
-        Integer added = null;
-        Integer removed = null;
+            if (newContactLookups == null || processor.isDone()) {
+                return;
+            }
+            Integer added = null;
+            Integer removed = null;
 
-        if (savedContactIds != null) {
-            added = differenceSize(newContactIds, savedContactIds);
-            removed = differenceSize(savedContactIds, newContactIds);
+            if (!savedContactLookups.isEmpty()) {
+                added = differenceSize(newContactLookups, savedContactLookups);
+                removed = differenceSize(savedContactLookups, newContactLookups);
+            }
+
+            savedContactLookups = newContactLookups;
+            preferences.edit().putStringSet(CONTACT_LOOKUPS, savedContactLookups).apply();
+
+            double timestamp = System.currentTimeMillis() / 1000.0;
+            send(contactsTopic, new PhoneContactList(timestamp, timestamp, added, removed, newContactLookups.size()));
+        } catch (RuntimeException ex) {
+            logger.error("Failed to lookup contact IDs", ex);
         }
-
-        savedContactIds = newContactIds;
-        preferences.edit().putStringSet(CONTACT_IDS, savedContactIds).apply();
-
-        double timestamp = System.currentTimeMillis() / 1000.0;
-        send(contactsTopic, new PhoneContactList(timestamp, timestamp, added, removed, newContactIds.size()));
     }
 
     private static int differenceSize(Collection<?> collectionA, Collection<?> collectionB) {
@@ -103,18 +122,39 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
         return diff;
     }
 
-    private Set<String> getContactIds() {
+    private Set<String> getContactLookups() {
         Set<String> contactIds = new HashSet<>();
 
-        try (Cursor cursor = getService().getContentResolver().query(ContactsContract.Contacts.CONTENT_URI,
-                PROJECTION, null, null, null)) {
-            if (cursor != null && cursor.moveToFirst()) {
-                while (!cursor.isAfterLast()) {
-                    contactIds.add(cursor.getString(0));
-                    cursor.moveToNext();
+        int limit = 1000;
+        String sortOrder = "lookup ASC LIMIT " + limit;
+        String where = null;
+        String[] whereArgs = null;
+
+        int numUpdates;
+
+        do {
+            numUpdates = 0;
+            String lastLookup = null;
+            try (Cursor cursor = db.query(ContactsContract.Contacts.CONTENT_URI, LOOKUP_COLUMNS,
+                    where, whereArgs, sortOrder)) {
+                if (cursor == null) {
+                    return null;
+                }
+
+                while (cursor.moveToNext()) {
+                    numUpdates++;
+                    lastLookup = cursor.getString(0);
+                    contactIds.add(lastLookup);
                 }
             }
-        }
+
+            if (where == null) {
+                where = ContactsContract.Contacts.LOOKUP_KEY + " > ?";
+                whereArgs = new String[]{lastLookup};
+            } else {
+                whereArgs[0] = lastLookup;
+            }
+        } while (numUpdates == limit && !processor.isDone());
 
         return contactIds;
     }

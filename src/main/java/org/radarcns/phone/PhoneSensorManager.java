@@ -180,12 +180,16 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
      private void registerSensors() {
         // At time of writing this is: Accelerometer, Light, Gyroscope, Magnetic Field and Step Counter
         for (int sensorType : SENSOR_TYPES_TO_REGISTER) {
-            if (sensorManager.getDefaultSensor(sensorType) != null) {
+            Sensor sensor = sensorManager.getDefaultSensor(sensorType);
+            if (sensor != null) {
                 // delay from milliseconds to microseconds
                 int delay = (int) TimeUnit.MILLISECONDS.toMicros(sensorDelays.get(sensorType, PHONE_SENSOR_INTERVAL_DEFAULT));
                 if (delay > 0) {
-                    Sensor sensor = sensorManager.getDefaultSensor(sensorType);
-                    sensorManager.registerListener(this, sensor, delay, mHandler);
+                    synchronized (this) {
+                        if (mHandler != null) {
+                            sensorManager.registerListener(this, sensor, delay, mHandler);
+                        }
+                    }
                 }
             } else {
                 logger.warn("The sensor '{}' could not be found", SENSOR_NAMES.get(sensorType,"unknown"));
@@ -311,7 +315,9 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         if (wakeLock != null) {
             wakeLock.release();
         }
-        mHandler = null;
+        synchronized (this) {
+            mHandler = null;
+        }
         mHandlerThread.quitSafely();
         super.close();
     }

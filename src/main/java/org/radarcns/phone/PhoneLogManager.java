@@ -44,9 +44,21 @@ import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import static android.provider.BaseColumns._ID;
+
 public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, BaseDeviceState> implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(PhoneLogManager.class);
 
+    private static final int SQLITE_LIMIT = 1000;
+
+    private static final String[] ID_COLUMNS = {_ID};
+    private static final String[] SMS_COLUMNS = {
+            Telephony.Sms.PERSON, Telephony.Sms.ADDRESS, Telephony.Sms.TYPE, Telephony.Sms.BODY};
+    private static final String[] CALL_COLUMNS = {
+            CallLog.Calls.DATE, CallLog.Calls.CACHED_LOOKUP_URI, CallLog.Calls.NUMBER,
+            CallLog.Calls.DURATION, CallLog.Calls.TYPE};
+
+    // If from contact, then the ID of the sender is a non-zero integer
     private static final SparseArray<PhoneCallType> CALL_TYPES = new SparseArray<>(4);
     private static final SparseArray<PhoneSmsType> SMS_TYPES = new SparseArray<>(7);
     private static final String LAST_SMS_KEY = "last.sms.time";
@@ -120,32 +132,41 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
             return;
         }
 
-        String where = CallLog.Calls.DATE + " > " + lastCallTimestamp;
-        String sort = CallLog.Calls.DATE + " ASC";
-        // If this is the first call (initialDateRead is default),
-        // then the lastDateRead is a set time before current time.
-        try (Cursor c = db.query(CallLog.Calls.CONTENT_URI, null, where, null, sort)) {
-            if (c == null) {
-                return;
+        String where = CallLog.Calls.DATE + " > ?";
+        String sort = CallLog.Calls.DATE + " ASC LIMIT " + SQLITE_LIMIT;
+
+        int numUpdates;
+
+        do {
+            String[] whereArgs = new String[]{Long.toString(lastSmsTimestamp)};
+            numUpdates = 0;
+
+            // If this is the first call (initialDateRead is default),
+            // then the lastDateRead is a set time before current time.
+            try (Cursor c = db.query(CallLog.Calls.CONTENT_URI, CALL_COLUMNS, where, whereArgs, sort)) {
+                if (c == null) {
+                    return;
+                }
+
+                while (c.moveToNext() && !logProcessor.isDone()) {
+                    numUpdates++;
+                    long date = c.getLong(c.getColumnIndex(CallLog.Calls.DATE));
+
+                    // If contact, then the contact lookup uri is given
+                    boolean targetIsAContact = c.getString(c.getColumnIndex(CallLog.Calls.CACHED_LOOKUP_URI)) != null;
+
+                    sendPhoneCall(date / 1000d,
+                            c.getString(c.getColumnIndex(CallLog.Calls.NUMBER)),
+                            c.getFloat(c.getColumnIndex(CallLog.Calls.DURATION)),
+                            c.getInt(c.getColumnIndex(CallLog.Calls.TYPE)),
+                            targetIsAContact
+                    );
+                    lastCallTimestamp = date;
+                }
+            } catch (Exception ex) {
+                logger.warn("Error in processing the call log", ex);
             }
-
-            while (c.moveToNext() && !logProcessor.isDone()) {
-                long date = c.getLong(c.getColumnIndex(CallLog.Calls.DATE));
-
-                // If contact, then the contact lookup uri is given
-                boolean targetIsAContact = c.getString(c.getColumnIndex(CallLog.Calls.CACHED_LOOKUP_URI)) != null;
-
-                sendPhoneCall(date / 1000d,
-                        c.getString(c.getColumnIndex(CallLog.Calls.NUMBER)),
-                        c.getFloat(c.getColumnIndex(CallLog.Calls.DURATION)),
-                        c.getInt(c.getColumnIndex(CallLog.Calls.TYPE)),
-                        targetIsAContact
-                );
-                lastCallTimestamp = date;
-            }
-        } catch (Exception ex) {
-            logger.warn("Error in processing the call log", ex);
-        }
+        } while (numUpdates == SQLITE_LIMIT && !logProcessor.isDone());
     }
 
     @Override
@@ -164,31 +185,38 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         if (logProcessor.isDone()) {
             return;
         }
-        String where = Telephony.Sms.DATE + " > " + lastSmsTimestamp;
-        String orderBy = Telephony.Sms.DATE + " ASC";
+        String where = Telephony.Sms.DATE + " > ?";
+        String orderBy = Telephony.Sms.DATE + " ASC LIMIT " + SQLITE_LIMIT;
 
-        // Query all sms with a date later than the last date seen and orderBy by date
-        try (Cursor c = db.query(Telephony.Sms.CONTENT_URI, null, where, null, orderBy)) {
-            if (c == null) {
-                return;
+        int numUpdates;
+
+        do {
+            String[] whereArgs = new String[] {Long.toString(lastSmsTimestamp)};
+            numUpdates = 0;
+            // Query all sms with a date later than the last date seen and orderBy by date
+            try (Cursor c = db.query(Telephony.Sms.CONTENT_URI, SMS_COLUMNS, where, whereArgs, orderBy)) {
+                if (c == null) {
+                    return;
+                }
+
+                while (c.moveToNext() && !logProcessor.isDone()) {
+                    numUpdates++;
+                    long date = c.getLong(c.getColumnIndex(Telephony.Sms.DATE));
+
+                    // If from contact, then the ID of the sender is a non-zero integer
+                    boolean isAContact = c.getInt(c.getColumnIndex(Telephony.Sms.PERSON)) > 0;
+                    sendPhoneSms(date / 1000d,
+                            c.getString(c.getColumnIndex(Telephony.Sms.ADDRESS)),
+                            c.getInt(c.getColumnIndex(Telephony.Sms.TYPE)),
+                            c.getString(c.getColumnIndex(Telephony.Sms.BODY)),
+                            isAContact
+                    );
+                    lastSmsTimestamp = date;
+                }
+            } catch (Exception ex) {
+                logger.error("Error in processing the sms log", ex);
             }
-
-            while (c.moveToNext() && !logProcessor.isDone()) {
-                long date = c.getLong(c.getColumnIndex(Telephony.Sms.DATE));
-
-                // If from contact, then the ID of the sender is a non-zero integer
-                boolean isAContact = c.getInt(c.getColumnIndex(Telephony.Sms.PERSON)) > 0;
-                sendPhoneSms(date / 1000d,
-                        c.getString(c.getColumnIndex(Telephony.Sms.ADDRESS)),
-                        c.getInt(c.getColumnIndex(Telephony.Sms.TYPE)),
-                        c.getString(c.getColumnIndex(Telephony.Sms.BODY)),
-                        isAContact
-                );
-                lastSmsTimestamp = date;
-            }
-        } catch (Exception ex) {
-            logger.error("Error in processing the sms log", ex);
-        }
+        } while (numUpdates == SQLITE_LIMIT && !logProcessor.isDone());
     }
 
     private void processNumberUnreadSms() {
@@ -196,7 +224,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
             return;
         }
         String where = Telephony.Sms.READ + " = 0";
-        try (Cursor c = db.query(Telephony.Sms.CONTENT_URI, null, where, null, null)) {
+        try (Cursor c = db.query(Telephony.Sms.CONTENT_URI, ID_COLUMNS, where, null, null)) {
             if (c == null) {
                 return;
             }
