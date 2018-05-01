@@ -68,7 +68,6 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
     private final AvroTopic<ObservationKey, PhoneRelativeLocation> locationTopic;
     private final LocationManager locationManager;
     private final BatteryLevelReceiver batteryLevelReceiver;
-    private final SharedPreferences preferences;
     private BigDecimal latitudeReference;
     private BigDecimal longitudeReference;
     private double altitudeReference;
@@ -92,34 +91,38 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
 
         batteryLevelReceiver = new BatteryLevelReceiver(context, this);
         this.frequency = FREQUENCY_OFF;
-        this.preferences = context.getSharedPreferences(PhoneLocationService.class.getName(), Context.MODE_PRIVATE);
 
-        if (preferences.contains(LATITUDE_REFERENCE)
-                && preferences.contains(LONGITUDE_REFERENCE)
-                && preferences.contains(ALTITUDE_REFERENCE)) {
-            latitudeReference = new BigDecimal(preferences.getString(LATITUDE_REFERENCE, null));
-            longitudeReference = new BigDecimal(preferences.getString(LONGITUDE_REFERENCE, null));
-            try {
-                altitudeReference = Double.longBitsToDouble(preferences.getLong(ALTITUDE_REFERENCE, Double.doubleToLongBits(Double.NaN)));
-            } catch (ClassCastException ex) {
-                // to fix bug where this was stored as String
-                altitudeReference = Double.valueOf(preferences.getString(ALTITUDE_REFERENCE, "-10000.0"));
-                if (altitudeReference == -10000.0) {
-                    altitudeReference = Double.NaN;
-                }
-                preferences.edit()
-                        .putLong(ALTITUDE_REFERENCE, Double.doubleToLongBits(altitudeReference))
-                        .apply();
-            }
-        } else {
-            latitudeReference = null;
-            longitudeReference = null;
-            altitudeReference = Double.NaN;
-        }
+        initializeReferences();
 
         isStarted = false;
         setName(String.format(context.getString(R.string.location_manager_name),
                 android.os.Build.MODEL));
+    }
+
+    private SharedPreferences getPreferences() {
+        return getService().getSharedPreferences(PhoneLocationService.class.getName(), Context.MODE_PRIVATE);
+    }
+
+    private void initializeReferences() {
+        SharedPreferences preferences = getPreferences();
+        String latitudeString = preferences.getString(LATITUDE_REFERENCE, null);
+        latitudeReference = latitudeString != null ? new BigDecimal(latitudeString) : null;
+
+        String longitudeString = preferences.getString(LONGITUDE_REFERENCE, null);
+        longitudeReference = longitudeString != null ? new BigDecimal(longitudeString) : null;
+
+        try {
+            altitudeReference = Double.longBitsToDouble(preferences.getLong(ALTITUDE_REFERENCE, Double.doubleToLongBits(Double.NaN)));
+        } catch (ClassCastException ex) {
+            // to fix bug where this was stored as String
+            altitudeReference = Double.valueOf(preferences.getString(ALTITUDE_REFERENCE, "-10000.0"));
+            if (altitudeReference == -10000.0) {
+                altitudeReference = Double.NaN;
+            }
+            preferences.edit()
+                    .putLong(ALTITUDE_REFERENCE, Double.doubleToLongBits(altitudeReference))
+                    .apply();
+        }
     }
 
     @Override
@@ -142,17 +145,6 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
     public void onLocationChanged(Location location) {
         if (location == null) {
             return;
-        }
-
-        if (latitudeReference == null) {
-            latitudeReference = BigDecimal.valueOf(location.getLatitude());
-            longitudeReference = BigDecimal.valueOf(location.getLongitude());
-            altitudeReference = location.hasAltitude() ? getRelativeAltitude(location.getAltitude()) : Double.NaN;
-            preferences.edit()
-                    .putString(LATITUDE_REFERENCE, latitudeReference.toString())
-                    .putString(LONGITUDE_REFERENCE, longitudeReference.toString())
-                    .putLong(ALTITUDE_REFERENCE, Double.doubleToLongBits(altitudeReference))
-                    .apply();
         }
 
         double eventTimestamp = location.getTime() / 1000d;
@@ -262,6 +254,10 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
             // corresponds mildly with the UTM zones used to make flat coordinates estimations.
             double reference = ThreadLocalRandom.current().nextDouble(-4, 4); // interval [-4,4)
             latitudeReference = BigDecimal.valueOf(reference);
+
+            getPreferences().edit()
+                    .putString(LATITUDE_REFERENCE, latitudeReference.toString())
+                    .apply();
         }
 
         return latitude.subtract(latitudeReference).doubleValue();
@@ -274,6 +270,10 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         BigDecimal longitude = BigDecimal.valueOf(absoluteLongitude);
         if (longitudeReference == null) {
             longitudeReference = longitude;
+
+            getPreferences().edit()
+                    .putString(LONGITUDE_REFERENCE, longitudeReference.toString())
+                    .apply();
         }
 
         double relativeLongitude = longitude.subtract(longitudeReference).doubleValue();
@@ -295,6 +295,10 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         }
         if (Double.isNaN(altitudeReference)) {
             altitudeReference = absoluteAltitude;
+
+            getPreferences().edit()
+                    .putLong(ALTITUDE_REFERENCE, Double.doubleToLongBits(altitudeReference))
+                    .apply();
         }
         return (float)(absoluteAltitude - altitudeReference);
     }
