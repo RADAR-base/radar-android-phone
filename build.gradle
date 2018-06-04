@@ -41,7 +41,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 27
         versionCode 8
-        versionName '0.1.4'
+        versionName '0.1.5'
     }
     lintOptions {
         abortOnError false
@@ -90,8 +90,8 @@ configurations.compile {
 }
 
 repositories {
-    jcenter()
     google()
+    jcenter()
     maven { url 'https://oss.jfrog.org/artifactory/oss-snapshot-local' }
 }
 
