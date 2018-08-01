@@ -40,6 +40,7 @@ import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_BATTERY_INTERV
  */
 public class PhoneSensorService extends DeviceService<PhoneState> {
     private SparseIntArray sensorDelays;
+    private int batteryInterval;
 
     @Override
     public void onCreate() {
@@ -49,7 +50,7 @@ public class PhoneSensorService extends DeviceService<PhoneState> {
 
     @Override
     protected PhoneSensorManager createDeviceManager() {
-        PhoneSensorManager manager = new PhoneSensorManager(this);
+        PhoneSensorManager manager = new PhoneSensorManager(this, batteryInterval);
         manager.setSensorDelays(sensorDelays);
         return manager;
     }
@@ -67,10 +68,11 @@ public class PhoneSensorService extends DeviceService<PhoneState> {
         sensorDelays.put(Sensor.TYPE_GYROSCOPE, bundle.getInt(PHONE_SENSOR_GYROSCOPE_INTERVAL));
         sensorDelays.put(Sensor.TYPE_LIGHT, bundle.getInt(PHONE_SENSOR_LIGHT_INTERVAL));
         sensorDelays.put(Sensor.TYPE_STEP_COUNTER, bundle.getInt(PHONE_SENSOR_STEP_COUNT_INTERVAL));
+        batteryInterval = bundle.getInt(PHONE_SENSOR_BATTERY_INTERVAL);
         PhoneSensorManager manager = (PhoneSensorManager) getDeviceManager();
         if (manager != null) {
             manager.setSensorDelays(sensorDelays);
-            manager.setBatteryUpdateInterval(bundle.getInt(PHONE_SENSOR_BATTERY_INTERVAL));
+            manager.setBatteryUpdateInterval(batteryInterval);
         }
     }
 

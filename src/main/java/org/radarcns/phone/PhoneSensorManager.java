@@ -108,7 +108,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     private PowerManager.WakeLock wakeLock;
     private Handler mHandler;
 
-    public PhoneSensorManager(PhoneSensorService context) {
+    public PhoneSensorManager(PhoneSensorService context, int batteryInterval) {
         super(context);
 
         accelerationTopic = createTopic("android_phone_acceleration", PhoneAcceleration.class);
@@ -123,7 +123,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
 
         batteryProcessor = new OfflineProcessor(context, this::processBatteryStatus,
-                REQUEST_CODE_PENDING_INTENT, ACTIVITY_LAUNCH_WAKE, 6000L, true);
+                REQUEST_CODE_PENDING_INTENT, ACTIVITY_LAUNCH_WAKE, batteryInterval, true);
 
         setName(android.os.Build.MODEL);
     }
