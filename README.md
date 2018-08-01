@@ -40,7 +40,7 @@ The following Firebase parameters are available:
 | `phone_sensor_steps_interval` | int (ms) | 200 | Interval between phone step counter polls. Set to `0` to disable. |
 | `phone_sensor_acceleration_interval` | int (ms) | 200 | Interval between phone acceleration sensor polls. Set to `0` to disable. |
 | `phone_sensor_light_interval` | int (ms) | - | Set to `0` to disable. Note that the light sensor registers every change of illuminance and can't be set to record in a specific interval |
-| `phone_sensor_battery_interval` | int (s) | 60 (= 1 minute) | Interval between phone battery level polls. |
+| `phone_sensor_battery_interval_seconds` | int (s) | 600 (= 10 minutes) | Interval between phone battery level polls. |
 | **PhoneLogProvider** |||
 | `call_sms_log_interval_seconds` | int (s) | 86400 (= 1 day) | Interval for gathering Android call/sms logs. |
 | **PhoneLocationProvider** |||

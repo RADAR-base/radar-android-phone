@@ -26,14 +26,14 @@ import java.util.List;
 
 public class PhoneSensorProvider extends DeviceServiceProvider<PhoneState> {
     static final int PHONE_SENSOR_INTERVAL_DEFAULT = 200;
-    static final int PHONE_SENSOR_BATTERY_INTERVAL_DEFAULT = 60; // seconds
+    static final int PHONE_SENSOR_BATTERY_INTERVAL_DEFAULT_SECONDS = 600;
     static final String PHONE_SENSOR_INTERVAL = "phone_sensor_default_interval";
     static final String PHONE_SENSOR_GYROSCOPE_INTERVAL = "phone_sensor_gyroscope_interval";
     static final String PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL = "phone_sensor_magneticfield_interval";
     static final String PHONE_SENSOR_STEP_COUNT_INTERVAL = "phone_sensor_steps_interval";
     static final String PHONE_SENSOR_ACCELERATION_INTERVAL = "phone_sensor_acceleration_interval";
     static final String PHONE_SENSOR_LIGHT_INTERVAL = "phone_sensor_light_interval";
-    static final String PHONE_SENSOR_BATTERY_INTERVAL = "phone_sensor_battery_interval";
+    static final String PHONE_SENSOR_BATTERY_INTERVAL_SECONDS = "phone_sensor_battery_interval_seconds";
     public static final String DEVICE_PRODUCER = "ANDROID";
     public static final String DEVICE_MODEL = "PHONE";
 
@@ -63,7 +63,7 @@ public class PhoneSensorProvider extends DeviceServiceProvider<PhoneState> {
         bundle.putInt(PHONE_SENSOR_STEP_COUNT_INTERVAL, getConfig().getInt(PHONE_SENSOR_STEP_COUNT_INTERVAL, defaultInterval));
         bundle.putInt(PHONE_SENSOR_ACCELERATION_INTERVAL, getConfig().getInt(PHONE_SENSOR_ACCELERATION_INTERVAL, defaultInterval));
         bundle.putInt(PHONE_SENSOR_LIGHT_INTERVAL, getConfig().getInt(PHONE_SENSOR_LIGHT_INTERVAL, defaultInterval));
-        bundle.putInt(PHONE_SENSOR_BATTERY_INTERVAL, getConfig().getInt(PHONE_SENSOR_BATTERY_INTERVAL, PHONE_SENSOR_BATTERY_INTERVAL_DEFAULT));
+        bundle.putInt(PHONE_SENSOR_BATTERY_INTERVAL_SECONDS, getConfig().getInt(PHONE_SENSOR_BATTERY_INTERVAL_SECONDS, PHONE_SENSOR_BATTERY_INTERVAL_DEFAULT_SECONDS));
     }
 
     @Override
