@@ -32,6 +32,7 @@ public class PhoneSensorProvider extends DeviceServiceProvider<PhoneState> {
     static final String PHONE_SENSOR_STEP_COUNT_INTERVAL = "phone_sensor_steps_interval";
     static final String PHONE_SENSOR_ACCELERATION_INTERVAL = "phone_sensor_acceleration_interval";
     static final String PHONE_SENSOR_LIGHT_INTERVAL = "phone_sensor_light_interval";
+    static final String PHONE_SENSOR_BATTERY_INTERVAL = "phone_sensor_battery_interval";
     public static final String DEVICE_PRODUCER = "ANDROID";
     public static final String DEVICE_MODEL = "PHONE";
 
@@ -61,6 +62,7 @@ public class PhoneSensorProvider extends DeviceServiceProvider<PhoneState> {
         bundle.putInt(PHONE_SENSOR_STEP_COUNT_INTERVAL, getConfig().getInt(PHONE_SENSOR_STEP_COUNT_INTERVAL, defaultInterval));
         bundle.putInt(PHONE_SENSOR_ACCELERATION_INTERVAL, getConfig().getInt(PHONE_SENSOR_ACCELERATION_INTERVAL, defaultInterval));
         bundle.putInt(PHONE_SENSOR_LIGHT_INTERVAL, getConfig().getInt(PHONE_SENSOR_LIGHT_INTERVAL, defaultInterval));
+        bundle.putInt(PHONE_SENSOR_BATTERY_INTERVAL, getConfig().getInt(PHONE_SENSOR_BATTERY_INTERVAL, defaultInterval));
     }
 
     @Override

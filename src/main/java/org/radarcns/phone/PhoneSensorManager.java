@@ -17,7 +17,6 @@
 package org.radarcns.phone;
 
 import android.annotation.SuppressLint;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -34,6 +33,7 @@ import android.util.SparseArray;
 import android.util.SparseIntArray;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.DeviceStatusListener;
+import org.radarcns.android.util.OfflineProcessor;
 import org.radarcns.kafka.ObservationKey;
 import org.radarcns.passive.phone.BatteryStatus;
 import org.radarcns.passive.phone.PhoneAcceleration;
@@ -47,7 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -91,6 +90,9 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         BATTERY_TYPES.append(BATTERY_STATUS_FULL, BatteryStatus.FULL);
     }
 
+    private static final String ACTIVITY_LAUNCH_WAKE = "org.radarcns.phone.PhoneSensorManager.ACTIVITY_LAUNCH_WAKE";
+    private static final int REQUEST_CODE_PENDING_INTENT = 482480668;
+
     private final AvroTopic<ObservationKey, PhoneAcceleration> accelerationTopic;
     private final AvroTopic<ObservationKey, PhoneLight> lightTopic;
     private final AvroTopic<ObservationKey, PhoneStepCount> stepCountTopic;
@@ -101,7 +103,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
     private final HandlerThread mHandlerThread;
     private final SensorManager sensorManager;
-    private final BroadcastReceiver batteryLevelReceiver;
+    private final OfflineProcessor batteryProcessor;
     private int lastStepCount = -1;
     private PowerManager.WakeLock wakeLock;
     private Handler mHandler;
@@ -119,19 +121,9 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         this.sensorDelays = new SparseIntArray();
         mHandlerThread = new HandlerThread("Phone sensors", THREAD_PRIORITY_BACKGROUND);
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-        batteryLevelReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, final Intent intent) {
-                if (Objects.equals(intent.getAction(), Intent.ACTION_BATTERY_CHANGED)) {
-                    mHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            processBatteryStatus(intent);
-                        }
-                    });
-                }
-            }
-        };
+
+        batteryProcessor = new OfflineProcessor(context, this::processBatteryStatus,
+                REQUEST_CODE_PENDING_INTENT, ACTIVITY_LAUNCH_WAKE, 6000L, true);
 
         setName(android.os.Build.MODEL);
     }
@@ -152,9 +144,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
         registerSensors();
 
-        // Battery
-        processBatteryStatus(
-                getService().registerReceiver(batteryLevelReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED)));
+        batteryProcessor.start();
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
     }
@@ -172,6 +162,10 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
             sensorManager.unregisterListener(this);
             registerSensors();
         }
+    }
+
+    public final void setBatteryUpdateInterval(final long period) {
+        batteryProcessor.setInterval(period);
     }
 
     /**
@@ -288,10 +282,21 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         logger.info("Steps taken: {}", stepsSinceLastUpdate);
     }
 
-    private void processBatteryStatus(Intent intent) {
+    private void processBatteryStatus() {
+        if (batteryProcessor.isDone()) {
+            return;
+        }
+
+        // Get last broadcast battery change intent
+        Intent intent = getService().registerReceiver(
+                null,
+                new IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        );
+
         if (intent == null) {
             return;
         }
+
         int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
         int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
 
@@ -304,13 +309,12 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         getState().setBatteryLevel(batteryPct);
 
         double time = System.currentTimeMillis() / 1000d;
-        trySend(batteryTopic, 0L, new PhoneBatteryLevel(
-                time, time, batteryPct, isPlugged, batteryStatus));
+        send(batteryTopic, new PhoneBatteryLevel(time, time, batteryPct, isPlugged, batteryStatus));
     }
 
     @Override
     public void close() throws IOException {
-        getService().unregisterReceiver(batteryLevelReceiver);
+        batteryProcessor.close();
         sensorManager.unregisterListener(this);
         if (wakeLock != null) {
             wakeLock.release();

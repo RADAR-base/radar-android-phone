@@ -32,6 +32,7 @@ import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_GYROSCOPE_INTE
 import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_LIGHT_INTERVAL;
 import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL;
 import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_STEP_COUNT_INTERVAL;
+import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_BATTERY_INTERVAL;
 
 /**
  * A service that manages the phone sensor manager and a TableDataHandler to send store the data of
@@ -69,6 +70,7 @@ public class PhoneSensorService extends DeviceService<PhoneState> {
         PhoneSensorManager manager = (PhoneSensorManager) getDeviceManager();
         if (manager != null) {
             manager.setSensorDelays(sensorDelays);
+            manager.setBatteryUpdateInterval(bundle.getInt(PHONE_SENSOR_BATTERY_INTERVAL));
         }
     }
 
