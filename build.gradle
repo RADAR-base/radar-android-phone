@@ -150,6 +150,7 @@ publishing {
             artifact javadocJar
 
             pom {
+                description = moduleDescription
                 licenses {
                     license {
                         name = 'The Apache Software License, Version 2.0'
@@ -176,7 +177,7 @@ publishing {
                     url = githubUrl + '/issues'
                 }
                 organization {
-                    name = 'RADAR-CNS'
+                    name = 'RADAR-base'
                     url = website
                 }
                 scm {
@@ -228,12 +229,12 @@ artifactory {
             password = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
             maven = true
         }
-	defaults {
-	   publications ('mavenAar')
-	   publishArtifacts = true
-	   publishPom = true
+        defaults {
+           publications ('mavenAar')
+           publishArtifacts = true
+           publishPom = true
            properties = ['qa.level': 'basic', 'q.os': 'android']
-	}
+        }
     }
 }
 
