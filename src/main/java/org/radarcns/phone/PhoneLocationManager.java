@@ -133,13 +133,10 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
 
         updateStatus(DeviceStatusListener.Status.READY);
 
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                batteryLevelReceiver.register();
-                updateStatus(DeviceStatusListener.Status.CONNECTED);
-                isStarted = true;
-            }
+        handler.post(() -> {
+            batteryLevelReceiver.register();
+            updateStatus(DeviceStatusListener.Status.CONNECTED);
+            isStarted = true;
         });
     }
 
@@ -181,6 +178,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
     public void onProviderDisabled(String provider) {}
 
     public synchronized void setLocationUpdateRate(final long periodGPS, final long periodNetwork) {
+        //noinspection Convert2Lambda
         handler.post(new Runnable() {
              @SuppressLint("MissingPermission")
              @Override
@@ -338,12 +336,7 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
         }
 
         if (frequency == FREQUENCY_OFF) {
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    locationManager.removeUpdates(PhoneLocationManager.this);
-                }
-            });
+            handler.post(() -> locationManager.removeUpdates(PhoneLocationManager.this));
         } else {
             setLocationUpdateRate(useGpsInterval, useNetworkInterval);
         }
@@ -352,12 +345,9 @@ class PhoneLocationManager extends AbstractDeviceManager<PhoneLocationService, B
     @Override
     public void close() throws IOException {
         if (handler != null) {
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    batteryLevelReceiver.unregister();
-                    locationManager.removeUpdates(PhoneLocationManager.this);
-                }
+            handler.post(() -> {
+                batteryLevelReceiver.unregister();
+                locationManager.removeUpdates(PhoneLocationManager.this);
             });
             handler = null;
             handlerThread.quitSafely();

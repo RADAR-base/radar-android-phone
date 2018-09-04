@@ -112,6 +112,10 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
                     sendInteractionState(ACTION_BOOT);
                 }
 
+                if (intent == null || intent.getAction() == null) {
+                    return;
+                }
+
                 sendInteractionState(intent.getAction());
             }
         };

@@ -17,12 +17,11 @@
 package org.radarcns.phone;
 
 import android.os.Bundle;
-import org.radarcns.android.RadarConfiguration;
+import android.support.annotation.NonNull;
+
 import org.radarcns.android.device.BaseDeviceState;
-import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
-import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
 import static org.radarcns.phone.PhoneBluetoothProvider.BLUETOOTH_DEVICES_SCAN_INTERVAL_DEFAULT;
 import static org.radarcns.phone.PhoneBluetoothProvider.PHONE_BLUETOOTH_DEVICES_SCAN_INTERVAL_KEY;
 
@@ -44,7 +43,7 @@ public class PhoneBluetoothService extends DeviceService<BaseDeviceState> {
     }
 
     @Override
-    protected void onInvocation(Bundle bundle) {
+    protected void onInvocation(@NonNull Bundle bundle) {
         super.onInvocation(bundle);
         checkInterval = bundle.getLong(PHONE_BLUETOOTH_DEVICES_SCAN_INTERVAL_KEY);
 

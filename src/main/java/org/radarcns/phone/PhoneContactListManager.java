@@ -74,7 +74,7 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
                 .remove(CONTACT_IDS)
                 .apply();
 
-        savedContactLookups = preferences.getStringSet(CONTACT_LOOKUPS, Collections.<String>emptySet());
+        savedContactLookups = preferences.getStringSet(CONTACT_LOOKUPS, Collections.emptySet());
         processor.start();
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);

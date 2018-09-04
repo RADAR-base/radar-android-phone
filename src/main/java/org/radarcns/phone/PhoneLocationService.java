@@ -17,6 +17,8 @@
 package org.radarcns.phone;
 
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
@@ -54,7 +56,7 @@ public class PhoneLocationService extends DeviceService<BaseDeviceState> {
     }
 
     @Override
-    protected void onInvocation(Bundle bundle) {
+    protected void onInvocation(@NonNull Bundle bundle) {
         super.onInvocation(bundle);
         gpsInterval = bundle.getInt(INTERVAL_GPS_KEY);
         gpsIntervalReduced = bundle.getInt(INTERVAL_GPS_REDUCED_KEY);

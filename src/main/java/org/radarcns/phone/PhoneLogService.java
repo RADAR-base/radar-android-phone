@@ -17,6 +17,8 @@
 package org.radarcns.phone;
 
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceService;
 
@@ -36,7 +38,7 @@ public class PhoneLogService extends DeviceService<BaseDeviceState> {
     }
 
     @Override
-    protected void onInvocation(Bundle bundle) {
+    protected void onInvocation(@NonNull Bundle bundle) {
         super.onInvocation(bundle);
         logInterval = bundle.getLong(CALL_SMS_LOG_INTERVAL_KEY);
         PhoneLogManager deviceManager = (PhoneLogManager) getDeviceManager();
