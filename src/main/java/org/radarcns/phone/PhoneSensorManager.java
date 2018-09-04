@@ -123,12 +123,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
             @Override
             public void onReceive(Context context, final Intent intent) {
                 if (Objects.equals(intent.getAction(), Intent.ACTION_BATTERY_CHANGED)) {
-                    mHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            processBatteryStatus(intent);
-                        }
-                    });
+                    mHandler.post(() -> processBatteryStatus(intent));
                 }
             }
         };
@@ -304,8 +299,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         getState().setBatteryLevel(batteryPct);
 
         double time = System.currentTimeMillis() / 1000d;
-        trySend(batteryTopic, 0L, new PhoneBatteryLevel(
-                time, time, batteryPct, isPlugged, batteryStatus));
+        send(batteryTopic, new PhoneBatteryLevel(time, time, batteryPct, isPlugged, batteryStatus));
     }
 
     @Override
