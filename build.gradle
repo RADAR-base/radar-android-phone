@@ -41,7 +41,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 27
         versionCode 8
-        versionName '0.1.6-SNAPSHOT'
+        versionName '0.1.6'
     }
     lintOptions {
         abortOnError false
@@ -100,7 +100,7 @@ repositories {
 }
 
 dependencies {
-    api 'org.radarcns:radar-commons-android:0.6.4-SNAPSHOT'
+    api 'org.radarcns:radar-commons-android:0.7.0'
     implementation 'org.radarcns:radar-schemas-commons:0.4.0'
 
     api 'com.android.support:support-annotations:27.1.1'
