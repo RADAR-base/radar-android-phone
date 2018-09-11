@@ -74,13 +74,4 @@ public class PhoneState extends BaseDeviceState {
     public synchronized void setBatteryLevel(float batteryLevel) {
         this.batteryLevel = batteryLevel;
     }
-
-    public float getLight() {
-        return light;
-    }
-
-    public void setLight(float light) {
-        this.light = light;
-    }
-
 }

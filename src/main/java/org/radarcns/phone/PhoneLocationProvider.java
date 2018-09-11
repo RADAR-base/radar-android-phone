@@ -46,10 +46,10 @@ public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState
     public static final String MINIMUM_BATTERY_LEVEL_KEY = PREFIX + PHONE_LOCATION_BATTERY_LEVEL_REDUCED;
     public static final String REDUCED_BATTERY_LEVEL_KEY = PREFIX + PHONE_LOCATION_BATTERY_LEVEL_MINIMUM;
 
-    private static final int LOCATION_GPS_INTERVAL_DEFAULT = 60*60; // seconds
-    private static final int LOCATION_GPS_INTERVAL_REDUCED_DEFAULT = 5 * LOCATION_GPS_INTERVAL_DEFAULT; // seconds
-    private static final int LOCATION_NETWORK_INTERVAL_DEFAULT = 10*60; // seconds
-    private static final int LOCATION_NETWORK_INTERVAL_REDUCED_DEFAULT = 5 * LOCATION_NETWORK_INTERVAL_DEFAULT; // seconds
+    private static final int LOCATION_GPS_INTERVAL_DEFAULT = 15*60; // seconds
+    private static final int LOCATION_GPS_INTERVAL_REDUCED_DEFAULT = 4 * LOCATION_GPS_INTERVAL_DEFAULT; // seconds
+    private static final int LOCATION_NETWORK_INTERVAL_DEFAULT = 5*60; // seconds
+    private static final int LOCATION_NETWORK_INTERVAL_REDUCED_DEFAULT = 4 * LOCATION_NETWORK_INTERVAL_DEFAULT; // seconds
 
     private static final float MINIMUM_BATTERY_LEVEL_DEFAULT = 0.15f;
     private static final float REDUCED_BATTERY_LEVEL_DEFAULT = 0.3f;

@@ -17,12 +17,11 @@
 package org.radarcns.phone;
 
 import android.os.Bundle;
-import org.radarcns.android.RadarConfiguration;
+import android.support.annotation.NonNull;
+
 import org.radarcns.android.device.BaseDeviceState;
-import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
-import static org.radarcns.android.RadarConfiguration.SOURCE_ID_KEY;
 import static org.radarcns.phone.PhoneContactListProvider.PHONE_CONTACTS_LIST_INTERVAL_DEFAULT;
 import static org.radarcns.phone.PhoneContactListProvider.PHONE_CONTACTS_LIST_INTERVAL_KEY;
 
@@ -44,7 +43,7 @@ public class PhoneContactsListService extends DeviceService<BaseDeviceState> {
     }
 
     @Override
-    protected void onInvocation(Bundle bundle) {
+    protected void onInvocation(@NonNull Bundle bundle) {
         super.onInvocation(bundle);
         checkInterval = bundle.getLong(PHONE_CONTACTS_LIST_INTERVAL_KEY);
 

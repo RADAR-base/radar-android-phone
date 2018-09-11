@@ -16,22 +16,22 @@
 
 buildscript {
     repositories {
-        jcenter()
         google()
+        jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.2'
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.0'
-        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.0'
-        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.5.4'
+        classpath 'com.android.tools.build:gradle:3.1.4'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.1'
+        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.7.5'
+        classpath 'digital.wup:android-maven-publish:3.6.1'
     }
 }
 
 apply plugin: 'com.android.library'
 apply plugin: 'com.jfrog.bintray'
-apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'maven-publish'
+apply plugin: 'digital.wup.android-maven-publish'
 
 android {
     compileSdkVersion 27
@@ -41,7 +41,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 27
         versionCode 8
-        versionName '0.1.5'
+        versionName '0.1.6'
     }
     lintOptions {
         abortOnError false
@@ -64,6 +64,10 @@ android {
     packagingOptions {
         exclude 'META-INF/ASL2.0'
         exclude 'META-INF/LICENSE'
+    }
+    compileOptions {
+        targetCompatibility 1.8
+        sourceCompatibility 1.8
     }
 }
 
@@ -96,8 +100,8 @@ repositories {
 }
 
 dependencies {
-    api 'org.radarcns:radar-commons-android:0.6'
-    implementation 'org.radarcns:radar-schemas-commons:0.3.2'
+    api 'org.radarcns:radar-commons-android:0.7.0'
+    implementation 'org.radarcns:radar-schemas-commons:0.4.0'
 
     api 'com.android.support:support-annotations:27.1.1'
 
@@ -138,17 +142,59 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
     manifest.from sharedManifest
 }
 
-// add javadoc/source jar tasks as artifacts
-artifacts {
-    archives javadocJar
-    archives sourcesJar
+publishing {
+    publications {
+        mavenAar(MavenPublication) {
+            from components.android
+            artifact sourcesJar
+            artifact javadocJar
+
+            pom {
+                description = moduleDescription
+                licenses {
+                    license {
+                        name = 'The Apache Software License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution = 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'blootsvoets'
+                        name = 'Joris Borgdorff'
+                        email = 'joris@thehyve.nl'
+                        organization = 'The Hyve'
+                    }
+                    developer {
+                        id = 'maximmoinat'
+                        name = 'Maxim Moinat'
+                        email = 'maxim@thehyve.nl'
+                        organization = 'The Hyve'
+                    }
+                }
+                issueManagement {
+                    system = 'GitHub'
+                    url = githubUrl + '/issues'
+                }
+                organization {
+                    name = 'RADAR-base'
+                    url = website
+                }
+                scm {
+                    connection = 'scm:git:' + githubUrl
+                    url = githubUrl
+                }
+            }
+        }
+
+    }
 }
 
 bintray {
-    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-    override = false
-    configurations = ['archives']
+    user project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+    key project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+    override false
+    publications 'mavenAar'
     pkg {
         repo = project.group
         name = moduleName
@@ -183,14 +229,17 @@ artifactory {
             password = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
             maven = true
         }
+        defaults {
+           publications ('mavenAar')
+           publishArtifacts = true
+           publishPom = true
+           properties = ['qa.level': 'basic', 'q.os': 'android']
+        }
     }
 }
 
-artifactoryPublish {
-    publishConfigs 'archives'
-    dependsOn 'assembleRelease'
-}
+artifactoryPublish.dependsOn 'assembleRelease'
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.4'
+wrapper {
+    gradleVersion '4.9'
 }
