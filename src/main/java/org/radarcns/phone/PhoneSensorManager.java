@@ -127,11 +127,18 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
                 REQUEST_CODE_PENDING_INTENT, ACTIVITY_LAUNCH_WAKE, batteryInterval, true);
 
         setName(android.os.Build.MODEL);
+
+        if (sensorManager == null) {
+            updateStatus(DeviceStatusListener.Status.DISCONNECTED);
+        }
     }
 
     @SuppressLint("WakelockTimeout")
     @Override
     public void start(@NonNull final Set<String> acceptableIds) {
+        if (getState().getStatus() == DeviceStatusListener.Status.DISCONNECTED) {
+            return;
+        }
         updateStatus(DeviceStatusListener.Status.READY);
         PowerManager powerManager = (PowerManager) getService().getSystemService(POWER_SERVICE);
         if (powerManager != null) {
@@ -315,7 +322,9 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     @Override
     public void close() throws IOException {
         batteryProcessor.close();
-        sensorManager.unregisterListener(this);
+        if (sensorManager != null) {
+            sensorManager.unregisterListener(this);
+        }
         if (wakeLock != null) {
             wakeLock.release();
         }
