@@ -23,6 +23,8 @@ import android.util.SparseIntArray;
 
 import org.radarcns.android.device.DeviceService;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_ACCELERATION_INTERVAL;
 import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_GYROSCOPE_INTERVAL;
 import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_LIGHT_INTERVAL;
@@ -46,7 +48,8 @@ public class PhoneSensorService extends DeviceService<PhoneState> {
 
     @Override
     protected PhoneSensorManager createDeviceManager() {
-        PhoneSensorManager manager = new PhoneSensorManager(this, batteryInterval);
+        PhoneSensorManager manager = new PhoneSensorManager(this, batteryInterval,
+                TimeUnit.SECONDS);
         manager.setSensorDelays(sensorDelays);
         return manager;
     }
@@ -68,7 +71,7 @@ public class PhoneSensorService extends DeviceService<PhoneState> {
         PhoneSensorManager manager = (PhoneSensorManager) getDeviceManager();
         if (manager != null) {
             manager.setSensorDelays(sensorDelays);
-            manager.setBatteryUpdateInterval(batteryInterval);
+            manager.setBatteryUpdateInterval(batteryInterval, TimeUnit.SECONDS);
         }
     }
 

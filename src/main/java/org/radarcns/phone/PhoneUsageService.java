@@ -22,6 +22,8 @@ import android.support.annotation.NonNull;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceService;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.radarcns.phone.PhoneUsageProvider.PHONE_USAGE_INTERVAL_KEY;
 
 /**
@@ -33,7 +35,7 @@ public class PhoneUsageService extends DeviceService<BaseDeviceState> {
 
     @Override
     protected PhoneUsageManager createDeviceManager() {
-        return new PhoneUsageManager(this, usageEventInterval);
+        return new PhoneUsageManager(this, usageEventInterval, TimeUnit.SECONDS);
     }
 
     @Override
@@ -48,7 +50,7 @@ public class PhoneUsageService extends DeviceService<BaseDeviceState> {
 
         PhoneUsageManager manager = (PhoneUsageManager) getDeviceManager();
         if (manager != null) {
-            manager.setUsageEventUpdateRate(usageEventInterval);
+            manager.setUsageEventUpdateRate(usageEventInterval, TimeUnit.SECONDS);
         }
     }
 

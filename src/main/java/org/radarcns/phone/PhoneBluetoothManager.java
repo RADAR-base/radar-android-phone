@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothService, BaseDeviceState> implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(PhoneBluetoothManager.class);
@@ -50,7 +51,7 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
         super(service);
 
         processor = new OfflineProcessor(service, this, SCAN_DEVICES_REQUEST_CODE,
-                ACTION_SCAN_DEVICES, service.getCheckInterval(), true);
+                ACTION_SCAN_DEVICES, service.getCheckInterval(), TimeUnit.SECONDS, true);
 
         bluetoothDevicesTopic = createTopic("android_phone_bluetooth_devices", PhoneBluetoothDevices.class);
     }
@@ -129,7 +130,7 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
         super.close();
     }
 
-    void setCheckInterval(long checkInterval) {
-        processor.setInterval(checkInterval);
+    void setCheckInterval(long checkInterval, TimeUnit intervalUnit) {
+        processor.setInterval(checkInterval, intervalUnit);
     }
 }
