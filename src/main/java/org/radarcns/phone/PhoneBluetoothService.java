@@ -22,6 +22,8 @@ import android.support.annotation.NonNull;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceService;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.radarcns.phone.PhoneBluetoothProvider.BLUETOOTH_DEVICES_SCAN_INTERVAL_DEFAULT;
 import static org.radarcns.phone.PhoneBluetoothProvider.PHONE_BLUETOOTH_DEVICES_SCAN_INTERVAL_KEY;
 
@@ -49,7 +51,7 @@ public class PhoneBluetoothService extends DeviceService<BaseDeviceState> {
 
         PhoneBluetoothManager manager = (PhoneBluetoothManager) getDeviceManager();
         if (manager != null) {
-            manager.setCheckInterval(checkInterval);
+            manager.setCheckInterval(checkInterval, TimeUnit.SECONDS);
         }
     }
 

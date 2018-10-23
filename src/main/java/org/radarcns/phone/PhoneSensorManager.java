@@ -109,7 +109,8 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     private PowerManager.WakeLock wakeLock;
     private Handler mHandler;
 
-    public PhoneSensorManager(PhoneSensorService context, int batteryInterval) {
+    public PhoneSensorManager(PhoneSensorService context, int batteryInterval,
+                              TimeUnit batteryIntervalUnit) {
         super(context);
 
         accelerationTopic = createTopic("android_phone_acceleration", PhoneAcceleration.class);
@@ -124,7 +125,8 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
 
         batteryProcessor = new OfflineProcessor(context, this::processBatteryStatus,
-                REQUEST_CODE_PENDING_INTENT, ACTIVITY_LAUNCH_WAKE, batteryInterval, true);
+                REQUEST_CODE_PENDING_INTENT, ACTIVITY_LAUNCH_WAKE, batteryInterval,
+                batteryIntervalUnit, true);
 
         setName(android.os.Build.MODEL);
 
@@ -143,7 +145,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         PowerManager powerManager = (PowerManager) getService().getSystemService(POWER_SERVICE);
         if (powerManager != null) {
             wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                    "PhoneSensorManager");
+                    "org.radarcns.phone:PhoneSensorManager");
             wakeLock.acquire();
         }
 
@@ -172,8 +174,8 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         }
     }
 
-    public final void setBatteryUpdateInterval(final long period) {
-        batteryProcessor.setInterval(period);
+    public final void setBatteryUpdateInterval(final long period, TimeUnit batteryIntervalUnit) {
+        batteryProcessor.setInterval(period, batteryIntervalUnit);
     }
 
     /**

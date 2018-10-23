@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class PhoneContactListManager extends AbstractDeviceManager<PhoneContactsListService, BaseDeviceState> implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(PhoneContactListManager.class);
@@ -61,7 +62,7 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
         contactsTopic = createTopic("android_phone_contacts", PhoneContactList.class);
 
         processor = new OfflineProcessor(service, this, CONTACTS_LIST_UPDATE_REQUEST_CODE,
-                ACTION_UPDATE_CONTACTS_LIST, service.getCheckInterval(), false);
+                ACTION_UPDATE_CONTACTS_LIST, service.getCheckInterval(), TimeUnit.SECONDS, false);
         db = service.getContentResolver();
     }
 
@@ -159,7 +160,7 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
         return contactIds;
     }
 
-    void setCheckInterval(long checkInterval) {
-        processor.setInterval(checkInterval);
+    void setCheckInterval(long checkInterval, TimeUnit unit) {
+        processor.setInterval(checkInterval, unit);
     }
 }

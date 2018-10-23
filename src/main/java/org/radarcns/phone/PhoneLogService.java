@@ -22,6 +22,8 @@ import android.support.annotation.NonNull;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceService;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.radarcns.phone.PhoneLogProvider.CALL_SMS_LOG_INTERVAL_KEY;
 
 public class PhoneLogService extends DeviceService<BaseDeviceState> {
@@ -29,7 +31,7 @@ public class PhoneLogService extends DeviceService<BaseDeviceState> {
 
     @Override
     protected PhoneLogManager createDeviceManager() {
-        return new PhoneLogManager(this, logInterval);
+        return new PhoneLogManager(this, logInterval, TimeUnit.SECONDS);
     }
 
     @Override
@@ -43,7 +45,7 @@ public class PhoneLogService extends DeviceService<BaseDeviceState> {
         logInterval = bundle.getLong(CALL_SMS_LOG_INTERVAL_KEY);
         PhoneLogManager deviceManager = (PhoneLogManager) getDeviceManager();
         if (deviceManager != null) {
-            deviceManager.setCallAndSmsLogUpdateRate(logInterval);
+            deviceManager.setCallAndSmsLogUpdateRate(logInterval, TimeUnit.SECONDS);
         }
     }
 

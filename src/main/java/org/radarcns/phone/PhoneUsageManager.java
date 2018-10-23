@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Date;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDeviceState> implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(PhoneUsageManager.class);
@@ -84,7 +85,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     private int lastEventType;
     private boolean lastEventIsSent;
 
-    public PhoneUsageManager(PhoneUsageService context, long usageEventInterval) {
+    public PhoneUsageManager(PhoneUsageService context, long usageEventInterval, TimeUnit unit) {
         super(context);
 
         userInteractionTopic = createTopic("android_phone_user_interaction", PhoneUserInteraction.class);
@@ -121,7 +122,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         };
 
         phoneUsageProcessor = new OfflineProcessor(context, this, USAGE_EVENT_REQUEST_CODE,
-                ACTION_UPDATE_EVENTS, usageEventInterval, false);
+                ACTION_UPDATE_EVENTS, usageEventInterval, unit, false);
 
         setName(String.format(context.getString(R.string.app_usage_service_name), Build.MODEL));
     }
@@ -184,8 +185,8 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
      * Set the interval in which to collect logs about app usage.
      * @param interval collection interval in seconds
      */
-    public void setUsageEventUpdateRate(long interval) {
-        phoneUsageProcessor.setInterval(interval);
+    public void setUsageEventUpdateRate(long interval, TimeUnit unit) {
+        phoneUsageProcessor.setInterval(interval, unit);
         logger.info("Usage event alarm activated and set to a period of {} seconds", interval);
     }
 

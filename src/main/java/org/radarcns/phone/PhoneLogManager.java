@@ -24,6 +24,7 @@ import android.provider.CallLog;
 import android.provider.Telephony;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
+
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceStatusListener;
@@ -42,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import static android.provider.BaseColumns._ID;
@@ -94,7 +96,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     private long lastSmsTimestamp;
     private long lastCallTimestamp;
 
-    public PhoneLogManager(PhoneLogService context, long logInterval) {
+    public PhoneLogManager(PhoneLogService context, long logInterval, TimeUnit logUnit) {
         super(context);
         callTopic = createTopic("android_phone_call", PhoneCall.class);
         smsTopic = createTopic("android_phone_sms", PhoneSms.class);
@@ -107,7 +109,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
 
         hashGenerator = new HashGenerator(preferences);
         logProcessor = new OfflineProcessor(context, this, REQUEST_CODE_PENDING_INTENT,
-                ACTIVITY_LAUNCH_WAKE, logInterval, false);
+                ACTIVITY_LAUNCH_WAKE, logInterval, logUnit, false);
 
         setName(String.format(context.getString(R.string.call_log_service_name), android.os.Build.MODEL));
     }
@@ -121,10 +123,10 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         updateStatus(DeviceStatusListener.Status.CONNECTED);
     }
 
-    public final void setCallAndSmsLogUpdateRate(final long period) {
+    public final void setCallAndSmsLogUpdateRate(long period, TimeUnit unit) {
         // Create pending intent, which cancels currently active pending intent
-        logProcessor.setInterval(period);
-        logger.info("Call and SMS log: listener activated and set to a period of {}", period);
+        logProcessor.setInterval(period, unit);
+        logger.info("Call and SMS log: listener activated and set to a period of {} {}", period, unit);
     }
 
     private synchronized void processCallLog() throws SecurityException {
