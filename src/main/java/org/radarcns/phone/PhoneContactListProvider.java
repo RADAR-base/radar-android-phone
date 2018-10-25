@@ -56,6 +56,7 @@ public class PhoneContactListProvider extends DeviceServiceProvider<BaseDeviceSt
         return false;
     }
 
+    @NonNull
     @Override
     public List<String> needsPermissions() {
         return Collections.singletonList(Manifest.permission.READ_CONTACTS);

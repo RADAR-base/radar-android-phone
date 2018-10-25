@@ -17,6 +17,7 @@
 package org.radarcns.phone;
 
 import android.Manifest;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import org.radarcns.android.RadarConfiguration;
@@ -56,9 +57,16 @@ public class PhoneBluetoothProvider extends DeviceServiceProvider<BaseDeviceStat
         return false;
     }
 
+    @NonNull
     @Override
     public List<String> needsPermissions() {
         return Collections.singletonList(Manifest.permission.BLUETOOTH_ADMIN);
+    }
+
+    @NonNull
+    @Override
+    public List<String> needsFeatures() {
+        return Collections.singletonList(PackageManager.FEATURE_BLUETOOTH);
     }
 
     @Override

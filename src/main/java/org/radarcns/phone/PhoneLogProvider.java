@@ -58,6 +58,7 @@ public class PhoneLogProvider extends DeviceServiceProvider<BaseDeviceState> {
         bundle.putLong(CALL_SMS_LOG_INTERVAL_KEY, config.getLong(CALL_SMS_LOG_INTERVAL, CALL_SMS_LOG_INTERVAL_DEFAULT));
     }
 
+    @NonNull
     @Override
     public List<String> needsPermissions() {
         return Arrays.asList(READ_CALL_LOG, READ_SMS);

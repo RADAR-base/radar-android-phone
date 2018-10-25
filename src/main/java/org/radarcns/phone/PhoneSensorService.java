@@ -22,6 +22,8 @@ import android.support.annotation.NonNull;
 import android.util.SparseIntArray;
 
 import org.radarcns.android.device.DeviceService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
@@ -37,6 +39,8 @@ import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_BATTERY_INTERV
  * the phone sensors and send it to a Kafka REST proxy.
  */
 public class PhoneSensorService extends DeviceService<PhoneState> {
+    private static final Logger logger = LoggerFactory.getLogger(PhoneSensorService.class);
+
     private SparseIntArray sensorDelays;
     private int batteryInterval;
 
@@ -48,6 +52,7 @@ public class PhoneSensorService extends DeviceService<PhoneState> {
 
     @Override
     protected PhoneSensorManager createDeviceManager() {
+        logger.info("Creating PhoneSensorManager");
         PhoneSensorManager manager = new PhoneSensorManager(this, batteryInterval,
                 TimeUnit.SECONDS);
         manager.setSensorDelays(sensorDelays);
@@ -73,10 +78,5 @@ public class PhoneSensorService extends DeviceService<PhoneState> {
             manager.setSensorDelays(sensorDelays);
             manager.setBatteryUpdateInterval(batteryInterval, TimeUnit.SECONDS);
         }
-    }
-
-    @Override
-    protected boolean isBluetoothConnectionRequired() {
-        return false;
     }
 }
