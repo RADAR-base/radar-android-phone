@@ -100,7 +100,7 @@ repositories {
 }
 
 dependencies {
-    api 'org.radarcns:radar-commons-android:0.7.1'
+    api 'org.radarcns:radar-commons-android:0.8.0-SNAPSHOT'
     implementation 'org.radarcns:radar-schemas-commons:0.4.0'
 
     api 'com.android.support:support-annotations:28.0.0'

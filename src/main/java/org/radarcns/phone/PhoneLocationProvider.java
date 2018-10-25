@@ -16,6 +16,7 @@
 
 package org.radarcns.phone;
 
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import org.radarcns.android.RadarConfiguration;
@@ -23,6 +24,7 @@ import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
@@ -82,9 +84,16 @@ public class PhoneLocationProvider extends DeviceServiceProvider<BaseDeviceState
         bundle.putFloat(REDUCED_BATTERY_LEVEL_KEY, config.getFloat(PHONE_LOCATION_BATTERY_LEVEL_MINIMUM, MINIMUM_BATTERY_LEVEL_DEFAULT));
     }
 
+    @NonNull
     @Override
     public List<String> needsPermissions() {
         return Arrays.asList(ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION);
+    }
+
+    @NonNull
+    @Override
+    public List<String> needsFeatures() {
+        return Collections.singletonList(PackageManager.FEATURE_LOCATION);
     }
 
     @Override

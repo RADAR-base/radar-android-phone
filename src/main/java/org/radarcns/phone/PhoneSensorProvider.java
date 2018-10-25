@@ -18,6 +18,7 @@ package org.radarcns.phone;
 
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.DeviceServiceProvider;
 
@@ -66,6 +67,7 @@ public class PhoneSensorProvider extends DeviceServiceProvider<PhoneState> {
         bundle.putInt(PHONE_SENSOR_BATTERY_INTERVAL_SECONDS, getConfig().getInt(PHONE_SENSOR_BATTERY_INTERVAL_SECONDS, PHONE_SENSOR_BATTERY_INTERVAL_DEFAULT_SECONDS));
     }
 
+    @NonNull
     @Override
     public List<String> needsPermissions() {
         return Collections.emptyList();

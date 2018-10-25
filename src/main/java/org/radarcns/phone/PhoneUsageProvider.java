@@ -51,6 +51,7 @@ public class PhoneUsageProvider extends DeviceServiceProvider<BaseDeviceState> {
         return getRadarService().getString(R.string.phoneUsageServiceDisplayName);
     }
 
+    @NonNull
     @Override
     public List<String> needsPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {

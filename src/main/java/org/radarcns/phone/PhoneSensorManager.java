@@ -113,6 +113,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
                               TimeUnit batteryIntervalUnit) {
         super(context);
 
+        logger.info("Creating topics");
         accelerationTopic = createTopic("android_phone_acceleration", PhoneAcceleration.class);
         batteryTopic = createTopic("android_phone_battery_level", PhoneBatteryLevel.class);
         lightTopic = createTopic("android_phone_light", PhoneLight.class);
@@ -122,7 +123,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
         this.sensorDelays = new SparseIntArray();
         mHandlerThread = new HandlerThread("Phone sensors", THREAD_PRIORITY_BACKGROUND);
-        sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
 
         batteryProcessor = new OfflineProcessor(context, this::processBatteryStatus,
                 REQUEST_CODE_PENDING_INTENT, ACTIVITY_LAUNCH_WAKE, batteryInterval,
@@ -130,18 +130,17 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
         setName(android.os.Build.MODEL);
 
+        sensorManager = (SensorManager) getService().getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager == null) {
             updateStatus(DeviceStatusListener.Status.DISCONNECTED);
+        } else {
+            updateStatus(DeviceStatusListener.Status.READY);
         }
     }
 
     @SuppressLint("WakelockTimeout")
     @Override
     public void start(@NonNull final Set<String> acceptableIds) {
-        if (getState().getStatus() == DeviceStatusListener.Status.DISCONNECTED) {
-            return;
-        }
-        updateStatus(DeviceStatusListener.Status.READY);
         PowerManager powerManager = (PowerManager) getService().getSystemService(POWER_SERVICE);
         if (powerManager != null) {
             wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
@@ -155,6 +154,9 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
         registerSensors();
 
         batteryProcessor.start();
+        batteryProcessor.trigger();
+
+        processBatteryStatus();
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
     }
