@@ -113,7 +113,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
                               TimeUnit batteryIntervalUnit) {
         super(context);
 
-        logger.info("Creating topics");
         accelerationTopic = createTopic("android_phone_acceleration", PhoneAcceleration.class);
         batteryTopic = createTopic("android_phone_battery_level", PhoneBatteryLevel.class);
         lightTopic = createTopic("android_phone_light", PhoneLight.class);
@@ -155,8 +154,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
         batteryProcessor.start();
         batteryProcessor.trigger();
-
-        processBatteryStatus();
 
         updateStatus(DeviceStatusListener.Status.CONNECTED);
     }

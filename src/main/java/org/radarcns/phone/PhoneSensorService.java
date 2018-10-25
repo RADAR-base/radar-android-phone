@@ -66,21 +66,16 @@ public class PhoneSensorService extends DeviceService<PhoneState> {
 
     @Override
     protected void onInvocation(@NonNull Bundle bundle) {
-        logger.info("Super invocation");
         super.onInvocation(bundle);
-        logger.info("Configuring sensor delays");
         sensorDelays.put(Sensor.TYPE_ACCELEROMETER, bundle.getInt(PHONE_SENSOR_ACCELERATION_INTERVAL));
         sensorDelays.put(Sensor.TYPE_MAGNETIC_FIELD, bundle.getInt(PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL));
         sensorDelays.put(Sensor.TYPE_GYROSCOPE, bundle.getInt(PHONE_SENSOR_GYROSCOPE_INTERVAL));
         sensorDelays.put(Sensor.TYPE_LIGHT, bundle.getInt(PHONE_SENSOR_LIGHT_INTERVAL));
         sensorDelays.put(Sensor.TYPE_STEP_COUNTER, bundle.getInt(PHONE_SENSOR_STEP_COUNT_INTERVAL));
         batteryInterval = bundle.getInt(PHONE_SENSOR_BATTERY_INTERVAL_SECONDS);
-        logger.info("Getting PhoneSensorManager");
         PhoneSensorManager manager = (PhoneSensorManager) getDeviceManager();
         if (manager != null) {
-            logger.info("Setting PhoneSensorManager sensorDelays");
             manager.setSensorDelays(sensorDelays);
-            logger.info("Setting PhoneSensorManager batteryInterval");
             manager.setBatteryUpdateInterval(batteryInterval, TimeUnit.SECONDS);
         }
     }
