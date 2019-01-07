@@ -94,7 +94,7 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
     public void run() {
         Set<String> newContactLookups = getContactLookups();
 
-        if (newContactLookups == null || processor.isDone()) {
+        if (newContactLookups == null) {
             return;
         }
         Integer added = null;

@@ -293,10 +293,6 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     }
 
     private void processBatteryStatus() {
-        if (batteryProcessor.isDone()) {
-            return;
-        }
-
         // Get last broadcast battery change intent
         Intent intent = getService().registerReceiver(
                 null,

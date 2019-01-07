@@ -49,7 +49,7 @@ import java.util.regex.Pattern;
 
 import static android.provider.BaseColumns._ID;
 
-public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, BaseDeviceState> implements Runnable {
+public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, BaseDeviceState> {
     private static final Logger logger = LoggerFactory.getLogger(PhoneLogManager.class);
 
     private static final int SQLITE_LIMIT = 1000;
@@ -94,8 +94,8 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     private final SharedPreferences preferences;
     private final ContentResolver db;
     private final OfflineProcessor logProcessor;
-    private long lastSmsTimestamp;
-    private long lastCallTimestamp;
+    private volatile long lastSmsTimestamp;
+    private volatile long lastCallTimestamp;
 
     public PhoneLogManager(PhoneLogService context, long logInterval, TimeUnit logUnit) {
         super(context);
@@ -109,7 +109,10 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         db = getService().getContentResolver();
 
         hashGenerator = new HashGenerator(preferences);
-        logProcessor = new OfflineProcessor.Builder(context, this)
+        logProcessor = new OfflineProcessor.Builder(context)
+                .addProcess(this::processCallLog)
+                .addProcess(this::processSmsLog)
+                .addProcess(this::processNumberUnreadSms)
                 .requestIdentifier(REQUEST_CODE_PENDING_INTENT, ACTIVITY_LAUNCH_WAKE)
                 .interval(logInterval, logUnit)
                 .wake(false)
@@ -133,33 +136,10 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
         logger.info("Call and SMS log: listener activated and set to a period of {} {}", period, unit);
     }
 
-    @Override
-    public void run() {
-        long localCallTimestamp;
-        long localSmsTimestamp;
-
-        synchronized (this) {
-            localCallTimestamp = lastCallTimestamp;
-            localSmsTimestamp = lastSmsTimestamp;
-        }
-
-        localCallTimestamp = processCallLog(localCallTimestamp);
-        localSmsTimestamp = processSmsLog(localSmsTimestamp);
-        processNumberUnreadSms();
-
-        preferences.edit()
-                .putLong(LAST_CALL_KEY, localCallTimestamp)
-                .putLong(LAST_SMS_KEY, localSmsTimestamp)
-                .apply();
-
-        synchronized (this) {
-            lastCallTimestamp = localCallTimestamp;
-            lastSmsTimestamp = localSmsTimestamp;
-        }
-    }
-
-    private long processSmsLog(long timestamp) {
-        return processDb(Telephony.Sms.CONTENT_URI, SMS_COLUMNS, Telephony.Sms.DATE, timestamp,
+    @SuppressWarnings("NonAtomicOperationOnVolatileField")
+    private void processSmsLog() {
+        lastSmsTimestamp = processDb(Telephony.Sms.CONTENT_URI, SMS_COLUMNS, Telephony.Sms.DATE,
+                lastSmsTimestamp,
                 record -> {
                     long date = record.getLong(record.getColumnIndex(Telephony.Sms.DATE));
 
@@ -174,10 +154,16 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
 
                     return date;
                 });
+
+        preferences.edit()
+                .putLong(LAST_SMS_KEY, lastSmsTimestamp)
+                .apply();
     }
 
-    private long processCallLog(long timestamp) {
-        return processDb(CallLog.Calls.CONTENT_URI, CALL_COLUMNS, CallLog.Calls.DATE, timestamp,
+    @SuppressWarnings("NonAtomicOperationOnVolatileField")
+    private void processCallLog() {
+        lastCallTimestamp = processDb(CallLog.Calls.CONTENT_URI, CALL_COLUMNS, CallLog.Calls.DATE,
+                lastCallTimestamp,
                 record -> {
                     long date = record.getLong(record.getColumnIndex(CallLog.Calls.DATE));
 
@@ -193,12 +179,13 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
 
                     return date;
                 });
+
+        preferences.edit()
+                .putLong(LAST_CALL_KEY, lastCallTimestamp)
+                .apply();
     }
 
     private long processDb(Uri contentUri, String[] columns, String dateColumn, long previousTimestamp, RecordProcessor processor) {
-        if (logProcessor.isDone()) {
-            return previousTimestamp;
-        }
         String where = dateColumn + " > ?";
         String orderBy = dateColumn + " ASC LIMIT " + SQLITE_LIMIT;
 
@@ -227,9 +214,6 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     }
 
     private void processNumberUnreadSms() {
-        if (logProcessor.isDone()) {
-            return;
-        }
         String where = Telephony.Sms.READ + " = 0";
         try (Cursor c = db.query(Telephony.Sms.CONTENT_URI, ID_COLUMNS, where, null, null)) {
             if (c == null) {

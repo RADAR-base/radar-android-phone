@@ -121,11 +121,8 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
             }
         };
 
-        phoneUsageProcessor = new OfflineProcessor.Builder(context,
-                () -> {
-                    processUsageEvents();
-                    storeLastEvent();
-                })
+        phoneUsageProcessor = new OfflineProcessor.Builder(context)
+                .addProcess(this::processUsageEvents)
                 .requestIdentifier(USAGE_EVENT_REQUEST_CODE, ACTION_UPDATE_EVENTS)
                 .interval(usageEventInterval, unit)
                 .wake(false)
@@ -192,7 +189,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     }
 
     private void processUsageEvents() {
-        if (phoneUsageProcessor.isDone() || usageStatsManager == null) {
+        if (usageStatsManager == null) {
             return;
         }
 
