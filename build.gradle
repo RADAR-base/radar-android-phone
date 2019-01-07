@@ -35,7 +35,7 @@ subprojects {
     apply plugin: 'digital.wup.android-maven-publish'
 
     group = 'org.radarcns'
-    version = '0.2.0'
+    version = '0.2.1-SNAPSHOT'
 
     ext {
         androidVersionCode = 10
