@@ -59,11 +59,11 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     }
     private static final String LAST_PACKAGE_NAME = "org.radarcns.phone.packageName";
     private static final String LAST_EVENT_TIMESTAMP = "org.radarcns.phone.timestamp";
-    private static final String LAST_EVENT_TYPE = "org.radarncs.phone.usage.PhoneUsageManager.lastEventType";
-    private static final String LAST_EVENT_IS_SENT = "org.radarncs.phone.usage.PhoneUsageManager.lastEventIsSent";
+    private static final String LAST_EVENT_TYPE = "org.radarcns.phone.usage.PhoneUsageManager.lastEventType";
+    private static final String LAST_EVENT_IS_SENT = "org.radarcns.phone.usage.PhoneUsageManager.lastEventIsSent";
     private static final String LAST_USER_INTERACTION = "org.radarcns.phone.lastAction";
     private static final String ACTION_BOOT = "org.radarcns.phone.ACTION_BOOT";
-    private static final String ACTION_UPDATE_EVENTS = "org.radarncs.phone.usage.PhoneUsageManager.ACTION_UPDATE_EVENTS";
+    private static final String ACTION_UPDATE_EVENTS = "org.radarcns.phone.usage.PhoneUsageManager.ACTION_UPDATE_EVENTS";
     private static final int USAGE_EVENT_REQUEST_CODE = 586106;
 
     @Nullable
