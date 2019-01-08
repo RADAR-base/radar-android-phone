@@ -22,8 +22,8 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:3.2.1'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
-        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.8.1'
-        classpath 'digital.wup:android-maven-publish:3.6.1'
+        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.9.0'
+        classpath 'digital.wup:android-maven-publish:3.6.2'
     }
 }
 
@@ -46,7 +46,7 @@ subprojects {
         website = 'http://radar-base.org'
 
         radarCommonsVersion = '0.9.3'
-        radarSchemasVersion = '0.4.2'
+        radarSchemasVersion = '0.4.3'
         androidAnnotationsVersion = '28.0.0'
     }
 
