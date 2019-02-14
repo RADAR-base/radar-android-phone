@@ -16,45 +16,37 @@
 
 package org.radarcns.phone;
 
-import android.os.Bundle;
 import android.support.annotation.NonNull;
 
+import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
+import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.radarcns.phone.PhoneBluetoothProvider.BLUETOOTH_DEVICES_SCAN_INTERVAL_DEFAULT;
-import static org.radarcns.phone.PhoneBluetoothProvider.PHONE_BLUETOOTH_DEVICES_SCAN_INTERVAL_KEY;
-
 public class PhoneBluetoothService extends DeviceService<BaseDeviceState> {
-    private long checkInterval = BLUETOOTH_DEVICES_SCAN_INTERVAL_DEFAULT;
+    private static final String PHONE_BLUETOOTH_DEVICES_SCAN_INTERVAL = "bluetooth_devices_scan_interval_seconds";
+    public static final long BLUETOOTH_DEVICES_SCAN_INTERVAL_DEFAULT = TimeUnit.HOURS.toSeconds(1);
 
     @Override
     protected PhoneBluetoothManager createDeviceManager() {
         return new PhoneBluetoothManager(this);
     }
 
+    @Override
+    protected void configureDeviceManager(DeviceManager<BaseDeviceState> manager, RadarConfiguration config) {
+        PhoneBluetoothManager phoneManager = (PhoneBluetoothManager) manager;
+        phoneManager.setCheckInterval(
+                config.getLong(PHONE_BLUETOOTH_DEVICES_SCAN_INTERVAL,
+                        BLUETOOTH_DEVICES_SCAN_INTERVAL_DEFAULT),
+                TimeUnit.SECONDS);
+    }
+
     @NonNull
     @Override
     protected BaseDeviceState getDefaultState() {
         return new BaseDeviceState();
-    }
-
-    /** Seconds to check */
-    public long getCheckInterval() {
-        return checkInterval;
-    }
-
-    @Override
-    protected void onInvocation(@NonNull Bundle bundle) {
-        super.onInvocation(bundle);
-        checkInterval = bundle.getLong(PHONE_BLUETOOTH_DEVICES_SCAN_INTERVAL_KEY);
-
-        PhoneBluetoothManager manager = (PhoneBluetoothManager) getDeviceManager();
-        if (manager != null) {
-            manager.setCheckInterval(checkInterval, TimeUnit.SECONDS);
-        }
     }
 
     @Override

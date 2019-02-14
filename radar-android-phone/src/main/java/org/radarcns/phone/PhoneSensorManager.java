@@ -58,7 +58,8 @@ import static android.os.BatteryManager.BATTERY_STATUS_FULL;
 import static android.os.BatteryManager.BATTERY_STATUS_NOT_CHARGING;
 import static android.os.BatteryManager.BATTERY_STATUS_UNKNOWN;
 import static android.os.Process.THREAD_PRIORITY_BACKGROUND;
-import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_INTERVAL_DEFAULT;
+import static org.radarcns.phone.PhoneSensorService.PHONE_SENSOR_BATTERY_INTERVAL_DEFAULT_SECONDS;
+import static org.radarcns.phone.PhoneSensorService.PHONE_SENSOR_INTERVAL_DEFAULT;
 
 class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, PhoneState> implements SensorEventListener {
     private static final Logger logger = LoggerFactory.getLogger(PhoneSensorManager.class);
@@ -109,8 +110,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
     private PowerManager.WakeLock wakeLock;
     private Handler mHandler;
 
-    public PhoneSensorManager(PhoneSensorService context, int batteryInterval,
-                              TimeUnit batteryIntervalUnit) {
+    public PhoneSensorManager(PhoneSensorService context) {
         super(context);
 
         accelerationTopic = createTopic("android_phone_acceleration", PhoneAcceleration.class);
@@ -125,7 +125,7 @@ class PhoneSensorManager extends AbstractDeviceManager<PhoneSensorService, Phone
 
         batteryProcessor = new OfflineProcessor.Builder(context, this::processBatteryStatus)
                 .requestIdentifier(REQUEST_CODE_PENDING_INTENT, ACTIVITY_LAUNCH_WAKE)
-                .interval(batteryInterval, batteryIntervalUnit)
+                .interval(PHONE_SENSOR_BATTERY_INTERVAL_DEFAULT_SECONDS, TimeUnit.SECONDS)
                 .wake(true)
                 .build();
 

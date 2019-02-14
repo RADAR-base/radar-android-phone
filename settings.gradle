@@ -1,5 +1,3 @@
 include ':radar-android-phone'
 include ':radar-android-phone-telephony'
 include ':radar-android-phone-usage'
-
-enableFeaturePreview('STABLE_PUBLISHING')

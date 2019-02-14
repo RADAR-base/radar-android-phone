@@ -16,43 +16,40 @@
 
 package org.radarcns.phone.usage;
 
-import android.os.Bundle;
 import android.support.annotation.NonNull;
 
+import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
+import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
 import java.util.concurrent.TimeUnit;
-
-import static org.radarcns.phone.PhoneUsageProvider.PHONE_USAGE_INTERVAL_KEY;
 
 /**
  * A service that manages the phone sensor manager and a TableDataHandler to send store the data of
  * the phone sensors and send it to a Kafka REST proxy.
  */
 public class PhoneUsageService extends DeviceService<BaseDeviceState> {
-    private long usageEventInterval;
+    private static final String PHONE_USAGE_INTERVAL = "phone_usage_interval_seconds";
+    static final long USAGE_EVENT_PERIOD_DEFAULT = 60*60; // one hour
 
     @Override
     protected PhoneUsageManager createDeviceManager() {
-        return new PhoneUsageManager(this, usageEventInterval, TimeUnit.SECONDS);
+        return new PhoneUsageManager(this);
+    }
+
+    @Override
+    protected void configureDeviceManager(DeviceManager<BaseDeviceState> manager, RadarConfiguration config) {
+        PhoneUsageManager phoneManager = (PhoneUsageManager) manager;
+        phoneManager.setUsageEventUpdateRate(
+                config.getLong(PHONE_USAGE_INTERVAL, USAGE_EVENT_PERIOD_DEFAULT),
+                TimeUnit.SECONDS);
     }
 
     @NonNull
     @Override
     protected BaseDeviceState getDefaultState() {
         return new BaseDeviceState();
-    }
-
-    @Override
-    protected void onInvocation(@NonNull Bundle bundle) {
-        super.onInvocation(bundle);
-        usageEventInterval = bundle.getLong(PHONE_USAGE_INTERVAL_KEY);
-
-        PhoneUsageManager manager = (PhoneUsageManager) getDeviceManager();
-        if (manager != null) {
-            manager.setUsageEventUpdateRate(usageEventInterval, TimeUnit.SECONDS);
-        }
     }
 
     @Override

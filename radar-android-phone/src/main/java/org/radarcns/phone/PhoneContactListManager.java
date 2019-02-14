@@ -30,8 +30,6 @@ import org.radarcns.android.util.OfflineProcessor;
 import org.radarcns.kafka.ObservationKey;
 import org.radarcns.passive.phone.PhoneContactList;
 import org.radarcns.topic.AvroTopic;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -41,8 +39,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class PhoneContactListManager extends AbstractDeviceManager<PhoneContactsListService, BaseDeviceState> implements Runnable {
-    private static final Logger logger = LoggerFactory.getLogger(PhoneContactListManager.class);
-
     private static final int CONTACTS_LIST_UPDATE_REQUEST_CODE = 15765692;
     private static final String ACTION_UPDATE_CONTACTS_LIST = "org.radarcns.phone.PhoneContactListManager.ACTION_UPDATE_CONTACTS_LIST";
     private static final String[] LOOKUP_COLUMNS = {ContactsContract.Contacts.LOOKUP_KEY};
@@ -63,7 +59,7 @@ public class PhoneContactListManager extends AbstractDeviceManager<PhoneContacts
 
         processor = new OfflineProcessor.Builder(service, this)
                 .requestIdentifier(CONTACTS_LIST_UPDATE_REQUEST_CODE, ACTION_UPDATE_CONTACTS_LIST)
-                .interval(service.getCheckInterval(), TimeUnit.SECONDS)
+                .interval(PhoneContactsListService.PHONE_CONTACTS_LIST_INTERVAL_DEFAULT, TimeUnit.SECONDS)
                 .wake(false)
                 .build();
         db = service.getContentResolver();

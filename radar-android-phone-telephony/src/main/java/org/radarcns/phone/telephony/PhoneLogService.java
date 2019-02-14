@@ -16,38 +16,36 @@
 
 package org.radarcns.phone.telephony;
 
-import android.os.Bundle;
 import android.support.annotation.NonNull;
 
+import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
+import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.radarcns.phone.PhoneLogProvider.CALL_SMS_LOG_INTERVAL_KEY;
-
 public class PhoneLogService extends DeviceService<BaseDeviceState> {
-    private long logInterval;
+    private static final String CALL_SMS_LOG_INTERVAL = "call_sms_log_interval_seconds";
+    static final long CALL_SMS_LOG_INTERVAL_DEFAULT = 24 * 60 * 60; // seconds
 
     @Override
     protected PhoneLogManager createDeviceManager() {
-        return new PhoneLogManager(this, logInterval, TimeUnit.SECONDS);
+        return new PhoneLogManager(this);
+    }
+
+    @Override
+    protected void configureDeviceManager(DeviceManager<BaseDeviceState> manager, RadarConfiguration configuration) {
+        PhoneLogManager phoneManager = (PhoneLogManager) manager;
+        phoneManager.setCallAndSmsLogUpdateRate(
+                configuration.getLong(CALL_SMS_LOG_INTERVAL, CALL_SMS_LOG_INTERVAL_DEFAULT),
+                TimeUnit.SECONDS);
     }
 
     @NonNull
     @Override
     protected BaseDeviceState getDefaultState() {
         return new BaseDeviceState();
-    }
-
-    @Override
-    protected void onInvocation(@NonNull Bundle bundle) {
-        super.onInvocation(bundle);
-        logInterval = bundle.getLong(CALL_SMS_LOG_INTERVAL_KEY);
-        PhoneLogManager deviceManager = (PhoneLogManager) getDeviceManager();
-        if (deviceManager != null) {
-            deviceManager.setCallAndSmsLogUpdateRate(logInterval, TimeUnit.SECONDS);
-        }
     }
 
     @Override

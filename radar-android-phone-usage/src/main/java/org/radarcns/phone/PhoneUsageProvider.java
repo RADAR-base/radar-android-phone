@@ -17,10 +17,8 @@
 package org.radarcns.phone;
 
 import android.os.Build;
-import android.os.Bundle;
 import android.support.annotation.NonNull;
 
-import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
 import org.radarcns.phone.usage.BuildConfig;
@@ -33,12 +31,6 @@ import java.util.List;
 public class PhoneUsageProvider extends DeviceServiceProvider<BaseDeviceState> {
     public static final String DEVICE_PRODUCER = "ANDROID";
     public static final String DEVICE_MODEL = "PHONE";
-
-    private static final String PHONE_PREFIX = "org.radarcns.phone.usage";
-    private static final String PHONE_USAGE_INTERVAL = "phone_usage_interval_seconds";
-    private static final long USAGE_EVENT_PERIOD_DEFAULT = 60*60; // one hour
-
-    public static final String PHONE_USAGE_INTERVAL_KEY = PHONE_PREFIX + PHONE_USAGE_INTERVAL;
 
     @Override
     public String getDescription() {
@@ -81,14 +73,6 @@ public class PhoneUsageProvider extends DeviceServiceProvider<BaseDeviceState> {
     @Override
     public String getVersion() {
         return BuildConfig.VERSION_NAME;
-    }
-
-    @Override
-    protected void configure(Bundle bundle) {
-        super.configure(bundle);
-        RadarConfiguration config = getConfig();
-        bundle.putLong(PHONE_USAGE_INTERVAL_KEY, config.getLong(
-                PHONE_USAGE_INTERVAL, USAGE_EVENT_PERIOD_DEFAULT));
     }
 
     @Override

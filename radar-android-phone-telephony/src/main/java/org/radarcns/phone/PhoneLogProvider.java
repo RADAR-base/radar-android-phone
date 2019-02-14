@@ -16,10 +16,8 @@
 
 package org.radarcns.phone;
 
-import android.os.Bundle;
 import android.support.annotation.NonNull;
 
-import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
 import org.radarcns.phone.telephony.BuildConfig;
@@ -36,11 +34,6 @@ public class PhoneLogProvider extends DeviceServiceProvider<BaseDeviceState> {
     public static final String DEVICE_PRODUCER = "ANDROID";
     public static final String DEVICE_MODEL = "PHONE";
 
-    private static final String PREFIX = PhoneLogProvider.class.getName() + '.';
-    private static final String CALL_SMS_LOG_INTERVAL = "call_sms_log_interval_seconds";
-    public static final String CALL_SMS_LOG_INTERVAL_KEY = PREFIX + CALL_SMS_LOG_INTERVAL;
-    private static final long CALL_SMS_LOG_INTERVAL_DEFAULT = 24 * 60 * 60; // seconds
-
     @Override
     public Class<?> getServiceClass() {
         return PhoneLogService.class;
@@ -54,13 +47,6 @@ public class PhoneLogProvider extends DeviceServiceProvider<BaseDeviceState> {
     @Override
     public String getDisplayName() {
         return getRadarService().getString(R.string.phoneLogServiceDisplayName);
-    }
-
-    @Override
-    protected void configure(Bundle bundle) {
-        super.configure(bundle);
-        RadarConfiguration config = getConfig();
-        bundle.putLong(CALL_SMS_LOG_INTERVAL_KEY, config.getLong(CALL_SMS_LOG_INTERVAL, CALL_SMS_LOG_INTERVAL_DEFAULT));
     }
 
     @NonNull

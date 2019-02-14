@@ -97,7 +97,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
     private volatile long lastSmsTimestamp;
     private volatile long lastCallTimestamp;
 
-    public PhoneLogManager(PhoneLogService context, long logInterval, TimeUnit logUnit) {
+    public PhoneLogManager(PhoneLogService context) {
         super(context);
         callTopic = createTopic("android_phone_call", PhoneCall.class);
         smsTopic = createTopic("android_phone_sms", PhoneSms.class);
@@ -114,7 +114,7 @@ public class PhoneLogManager extends AbstractDeviceManager<PhoneLogService, Base
                 .addProcess(this::processSmsLog)
                 .addProcess(this::processNumberUnreadSms)
                 .requestIdentifier(REQUEST_CODE_PENDING_INTENT, ACTIVITY_LAUNCH_WAKE)
-                .interval(logInterval, logUnit)
+                .interval(PhoneLogService.CALL_SMS_LOG_INTERVAL_DEFAULT, TimeUnit.SECONDS)
                 .wake(false)
                 .build();
 

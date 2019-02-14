@@ -16,44 +16,37 @@
 
 package org.radarcns.phone;
 
-import android.os.Bundle;
 import android.support.annotation.NonNull;
 
+import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
+import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.radarcns.phone.PhoneContactListProvider.PHONE_CONTACTS_LIST_INTERVAL_DEFAULT;
-import static org.radarcns.phone.PhoneContactListProvider.PHONE_CONTACTS_LIST_INTERVAL_KEY;
-
 public class PhoneContactsListService extends DeviceService<BaseDeviceState> {
-    private volatile long checkInterval = PHONE_CONTACTS_LIST_INTERVAL_DEFAULT;
+    private static final String PHONE_CONTACTS_LIST_INTERVAL = "phone_contacts_list_interval_seconds";
+    public static final long PHONE_CONTACTS_LIST_INTERVAL_DEFAULT = TimeUnit.DAYS.toSeconds(1);
 
     @Override
     protected PhoneContactListManager createDeviceManager() {
         return new PhoneContactListManager(this);
     }
 
+    @Override
+    protected void configureDeviceManager(DeviceManager<BaseDeviceState> manager, RadarConfiguration config) {
+        PhoneContactListManager phoneManager = (PhoneContactListManager) manager;
+        phoneManager.setCheckInterval(
+                config.getLong(PHONE_CONTACTS_LIST_INTERVAL,
+                        PHONE_CONTACTS_LIST_INTERVAL_DEFAULT),
+                TimeUnit.SECONDS);
+    }
+
     @NonNull
     @Override
     protected BaseDeviceState getDefaultState() {
         return new BaseDeviceState();
-    }
-
-    public long getCheckInterval() {
-        return checkInterval;
-    }
-
-    @Override
-    protected void onInvocation(@NonNull Bundle bundle) {
-        super.onInvocation(bundle);
-        checkInterval = bundle.getLong(PHONE_CONTACTS_LIST_INTERVAL_KEY);
-
-        PhoneContactListManager manager = (PhoneContactListManager) getDeviceManager();
-        if (manager != null) {
-            manager.setCheckInterval(checkInterval, TimeUnit.SECONDS);
-        }
     }
 
     @Override

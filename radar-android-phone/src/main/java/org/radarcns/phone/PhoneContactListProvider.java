@@ -17,25 +17,18 @@
 package org.radarcns.phone;
 
 import android.Manifest;
-import android.os.Bundle;
 import android.support.annotation.NonNull;
-import org.radarcns.android.RadarConfiguration;
+
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceServiceProvider;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.radarcns.phone.PhoneSensorProvider.DEVICE_MODEL;
 import static org.radarcns.phone.PhoneSensorProvider.DEVICE_PRODUCER;
 
 public class PhoneContactListProvider extends DeviceServiceProvider<BaseDeviceState> {
-    private static final String PHONE_PREFIX = "org.radarcns.phone.";
-    private static final String PHONE_CONTACTS_LIST_INTERVAL = "phone_contacts_list_interval_seconds";
-    public static final String PHONE_CONTACTS_LIST_INTERVAL_KEY =  PHONE_PREFIX + PHONE_CONTACTS_LIST_INTERVAL;
-    public static final long PHONE_CONTACTS_LIST_INTERVAL_DEFAULT = TimeUnit.DAYS.toSeconds(1);
-
     @Override
     public String getDescription() {
         return getRadarService().getString(R.string.phone_contact_list_description);
@@ -60,14 +53,6 @@ public class PhoneContactListProvider extends DeviceServiceProvider<BaseDeviceSt
     @Override
     public List<String> needsPermissions() {
         return Collections.singletonList(Manifest.permission.READ_CONTACTS);
-    }
-
-    @Override
-    protected void configure(Bundle bundle) {
-        super.configure(bundle);
-        RadarConfiguration config = getConfig();
-        bundle.putLong(PHONE_CONTACTS_LIST_INTERVAL_KEY, config.getLong(
-                PHONE_CONTACTS_LIST_INTERVAL, PHONE_CONTACTS_LIST_INTERVAL_DEFAULT));
     }
 
     @NonNull

@@ -41,6 +41,8 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static org.radarcns.phone.usage.PhoneUsageService.USAGE_EVENT_PERIOD_DEFAULT;
+
 class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDeviceState> {
     private static final Logger logger = LoggerFactory.getLogger(PhoneUsageManager.class);
 
@@ -85,7 +87,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
     private int lastEventType;
     private boolean lastEventIsSent;
 
-    public PhoneUsageManager(PhoneUsageService context, long usageEventInterval, TimeUnit unit) {
+    public PhoneUsageManager(PhoneUsageService context) {
         super(context);
 
         userInteractionTopic = createTopic("android_phone_user_interaction", PhoneUserInteraction.class);
@@ -124,7 +126,7 @@ class PhoneUsageManager extends AbstractDeviceManager<PhoneUsageService, BaseDev
         phoneUsageProcessor = new OfflineProcessor.Builder(context)
                 .addProcess(this::processUsageEvents)
                 .requestIdentifier(USAGE_EVENT_REQUEST_CODE, ACTION_UPDATE_EVENTS)
-                .interval(usageEventInterval, unit)
+                .interval(USAGE_EVENT_PERIOD_DEFAULT, TimeUnit.SECONDS)
                 .wake(false)
                 .build();
 

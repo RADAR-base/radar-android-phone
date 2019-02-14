@@ -17,32 +17,35 @@
 package org.radarcns.phone;
 
 import android.hardware.Sensor;
-import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.util.SparseIntArray;
 
+import org.radarcns.android.RadarConfiguration;
+import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_ACCELERATION_INTERVAL;
-import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_GYROSCOPE_INTERVAL;
-import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_LIGHT_INTERVAL;
-import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL;
-import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_STEP_COUNT_INTERVAL;
-import static org.radarcns.phone.PhoneSensorProvider.PHONE_SENSOR_BATTERY_INTERVAL_SECONDS;
-
 /**
  * A service that manages the phone sensor manager and a TableDataHandler to send store the data of
  * the phone sensors and send it to a Kafka REST proxy.
  */
 public class PhoneSensorService extends DeviceService<PhoneState> {
+    static final int PHONE_SENSOR_INTERVAL_DEFAULT = 200;
+    static final int PHONE_SENSOR_BATTERY_INTERVAL_DEFAULT_SECONDS = 600;
+    static final String PHONE_SENSOR_INTERVAL = "phone_sensor_default_interval";
+    static final String PHONE_SENSOR_GYROSCOPE_INTERVAL = "phone_sensor_gyroscope_interval";
+    static final String PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL = "phone_sensor_magneticfield_interval";
+    static final String PHONE_SENSOR_STEP_COUNT_INTERVAL = "phone_sensor_steps_interval";
+    static final String PHONE_SENSOR_ACCELERATION_INTERVAL = "phone_sensor_acceleration_interval";
+    static final String PHONE_SENSOR_LIGHT_INTERVAL = "phone_sensor_light_interval";
+    static final String PHONE_SENSOR_BATTERY_INTERVAL_SECONDS = "phone_sensor_battery_interval_seconds";
+
     private static final Logger logger = LoggerFactory.getLogger(PhoneSensorService.class);
 
     private SparseIntArray sensorDelays;
-    private int batteryInterval;
 
     @Override
     public void onCreate() {
@@ -53,31 +56,31 @@ public class PhoneSensorService extends DeviceService<PhoneState> {
     @Override
     protected PhoneSensorManager createDeviceManager() {
         logger.info("Creating PhoneSensorManager");
-        PhoneSensorManager manager = new PhoneSensorManager(this, batteryInterval,
+        return new PhoneSensorManager(this);
+    }
+
+    @Override
+    protected void configureDeviceManager(DeviceManager<PhoneState> manager, RadarConfiguration config) {
+        PhoneSensorManager phoneManager = (PhoneSensorManager) manager;
+
+        int defaultInterval = config.getInt(PHONE_SENSOR_INTERVAL, PHONE_SENSOR_INTERVAL_DEFAULT);
+
+        sensorDelays.put(Sensor.TYPE_ACCELEROMETER, config.getInt(PHONE_SENSOR_ACCELERATION_INTERVAL, defaultInterval));
+        sensorDelays.put(Sensor.TYPE_MAGNETIC_FIELD, config.getInt(PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL, defaultInterval));
+        sensorDelays.put(Sensor.TYPE_GYROSCOPE, config.getInt(PHONE_SENSOR_GYROSCOPE_INTERVAL, defaultInterval));
+        sensorDelays.put(Sensor.TYPE_LIGHT, config.getInt(PHONE_SENSOR_LIGHT_INTERVAL, defaultInterval));
+        sensorDelays.put(Sensor.TYPE_STEP_COUNTER, config.getInt(PHONE_SENSOR_STEP_COUNT_INTERVAL, defaultInterval));
+
+        phoneManager.setSensorDelays(sensorDelays);
+        phoneManager.setBatteryUpdateInterval(
+                config.getInt(PHONE_SENSOR_BATTERY_INTERVAL_SECONDS, PHONE_SENSOR_BATTERY_INTERVAL_DEFAULT_SECONDS),
                 TimeUnit.SECONDS);
-        manager.setSensorDelays(sensorDelays);
-        return manager;
+
     }
 
     @NonNull
     @Override
     protected PhoneState getDefaultState() {
         return new PhoneState();
-    }
-
-    @Override
-    protected void onInvocation(@NonNull Bundle bundle) {
-        super.onInvocation(bundle);
-        sensorDelays.put(Sensor.TYPE_ACCELEROMETER, bundle.getInt(PHONE_SENSOR_ACCELERATION_INTERVAL));
-        sensorDelays.put(Sensor.TYPE_MAGNETIC_FIELD, bundle.getInt(PHONE_SENSOR_MAGNETIC_FIELD_INTERVAL));
-        sensorDelays.put(Sensor.TYPE_GYROSCOPE, bundle.getInt(PHONE_SENSOR_GYROSCOPE_INTERVAL));
-        sensorDelays.put(Sensor.TYPE_LIGHT, bundle.getInt(PHONE_SENSOR_LIGHT_INTERVAL));
-        sensorDelays.put(Sensor.TYPE_STEP_COUNTER, bundle.getInt(PHONE_SENSOR_STEP_COUNT_INTERVAL));
-        batteryInterval = bundle.getInt(PHONE_SENSOR_BATTERY_INTERVAL_SECONDS);
-        PhoneSensorManager manager = (PhoneSensorManager) getDeviceManager();
-        if (manager != null) {
-            manager.setSensorDelays(sensorDelays);
-            manager.setBatteryUpdateInterval(batteryInterval, TimeUnit.SECONDS);
-        }
     }
 }

@@ -52,7 +52,8 @@ public class PhoneBluetoothManager extends AbstractDeviceManager<PhoneBluetoothS
 
         processor = new OfflineProcessor.Builder(service, this)
                 .requestIdentifier(SCAN_DEVICES_REQUEST_CODE, ACTION_SCAN_DEVICES)
-                .interval(service.getCheckInterval(), TimeUnit.SECONDS)
+                .interval(PhoneBluetoothService.BLUETOOTH_DEVICES_SCAN_INTERVAL_DEFAULT,
+                        TimeUnit.SECONDS)
                 .wake(true)
                 .build();
 

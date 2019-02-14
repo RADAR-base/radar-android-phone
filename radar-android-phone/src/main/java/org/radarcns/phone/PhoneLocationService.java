@@ -16,59 +16,51 @@
 
 package org.radarcns.phone;
 
-import android.os.Bundle;
 import android.support.annotation.NonNull;
 
+import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 
-import static org.radarcns.phone.PhoneLocationProvider.INTERVAL_GPS_KEY;
-import static org.radarcns.phone.PhoneLocationProvider.INTERVAL_GPS_REDUCED_KEY;
-import static org.radarcns.phone.PhoneLocationProvider.INTERVAL_NETWORK_KEY;
-import static org.radarcns.phone.PhoneLocationProvider.INTERVAL_NETWORK_REDUCED_KEY;
-import static org.radarcns.phone.PhoneLocationProvider.MINIMUM_BATTERY_LEVEL_KEY;
-import static org.radarcns.phone.PhoneLocationProvider.REDUCED_BATTERY_LEVEL_KEY;
-
 public class PhoneLocationService extends DeviceService<BaseDeviceState> {
-    private int gpsInterval;
-    private int gpsIntervalReduced;
-    private int networkInterval;
-    private int networkIntervalReduced;
-    private float batteryLevelMinimum;
-    private float batteryLevelReduced;
+    private static final String PHONE_LOCATION_GPS_INTERVAL = "phone_location_gps_interval";
+    private static final String PHONE_LOCATION_GPS_INTERVAL_REDUCED = "phone_location_gps_interval_reduced";
+    private static final String PHONE_LOCATION_NETWORK_INTERVAL = "phone_location_network_interval";
+    private static final String PHONE_LOCATION_NETWORK_INTERVAL_REDUCED = "phone_location_network_interval_reduced";
+    private static final String PHONE_LOCATION_BATTERY_LEVEL_REDUCED = "phone_location_battery_level_reduced";
+    private static final String PHONE_LOCATION_BATTERY_LEVEL_MINIMUM = "phone_location_battery_level_minimum";
+
+    private static final int LOCATION_GPS_INTERVAL_DEFAULT = 15*60; // seconds
+    private static final int LOCATION_GPS_INTERVAL_REDUCED_DEFAULT = 4 * LOCATION_GPS_INTERVAL_DEFAULT; // seconds
+    private static final int LOCATION_NETWORK_INTERVAL_DEFAULT = 5*60; // seconds
+    private static final int LOCATION_NETWORK_INTERVAL_REDUCED_DEFAULT = 4 * LOCATION_NETWORK_INTERVAL_DEFAULT; // seconds
+
+    private static final float MINIMUM_BATTERY_LEVEL_DEFAULT = 0.15f;
+    private static final float REDUCED_BATTERY_LEVEL_DEFAULT = 0.3f;
 
     @Override
     protected PhoneLocationManager createDeviceManager() {
-        PhoneLocationManager manager = new PhoneLocationManager(this);
-        configureManager(manager);
-        return manager;
+        return new PhoneLocationManager(this);
+    }
+
+    @Override
+    protected void configureDeviceManager(DeviceManager<BaseDeviceState> manager, RadarConfiguration config) {
+        PhoneLocationManager phoneManager = (PhoneLocationManager) manager;
+        phoneManager.setBatteryLevels(
+                config.getFloat(PHONE_LOCATION_BATTERY_LEVEL_MINIMUM, MINIMUM_BATTERY_LEVEL_DEFAULT),
+                config.getFloat(PHONE_LOCATION_BATTERY_LEVEL_REDUCED, REDUCED_BATTERY_LEVEL_DEFAULT));
+        phoneManager.setIntervals(
+                config.getInt(PHONE_LOCATION_GPS_INTERVAL, LOCATION_GPS_INTERVAL_DEFAULT),
+                config.getInt(PHONE_LOCATION_GPS_INTERVAL_REDUCED, LOCATION_GPS_INTERVAL_REDUCED_DEFAULT),
+                config.getInt(PHONE_LOCATION_NETWORK_INTERVAL, LOCATION_NETWORK_INTERVAL_DEFAULT),
+                config.getInt(PHONE_LOCATION_NETWORK_INTERVAL_REDUCED, LOCATION_NETWORK_INTERVAL_REDUCED_DEFAULT));
     }
 
     @NonNull
     @Override
     protected BaseDeviceState getDefaultState() {
         return new BaseDeviceState();
-    }
-
-    private void configureManager(PhoneLocationManager manager) {
-        manager.setBatteryLevels(batteryLevelMinimum, batteryLevelReduced);
-        manager.setIntervals(gpsInterval, gpsIntervalReduced, networkInterval, networkIntervalReduced);
-    }
-
-    @Override
-    protected void onInvocation(@NonNull Bundle bundle) {
-        super.onInvocation(bundle);
-        gpsInterval = bundle.getInt(INTERVAL_GPS_KEY);
-        gpsIntervalReduced = bundle.getInt(INTERVAL_GPS_REDUCED_KEY);
-        networkInterval = bundle.getInt(INTERVAL_NETWORK_KEY);
-        networkIntervalReduced = bundle.getInt(INTERVAL_NETWORK_REDUCED_KEY);
-        batteryLevelMinimum = bundle.getFloat(MINIMUM_BATTERY_LEVEL_KEY);
-        batteryLevelReduced = bundle.getFloat(REDUCED_BATTERY_LEVEL_KEY);
-        DeviceManager manager = getDeviceManager();
-        if (manager != null) {
-            configureManager((PhoneLocationManager) getDeviceManager());
-        }
     }
 
     @Override
