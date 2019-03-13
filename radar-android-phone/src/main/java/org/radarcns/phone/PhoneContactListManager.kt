@@ -51,7 +51,7 @@ class PhoneContactListManager(service: PhoneContactsListService) : AbstractDevic
 
     override fun start(acceptableIds: Set<String>) {
         updateStatus(DeviceStatusListener.Status.READY)
-        service.ensureRegistration(appLocalId, name, emptyMap())
+        register()
 
         processor.start {
             // deprecated using contact _ID, using LOOKUP instead.

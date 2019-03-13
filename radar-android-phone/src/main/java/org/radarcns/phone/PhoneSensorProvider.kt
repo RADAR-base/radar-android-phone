@@ -29,14 +29,14 @@ class PhoneSensorProvider : DeviceServiceProvider<PhoneState>() {
 
     override val permissionsNeeded: List<String> = emptyList()
 
-    override val sourceProducer: String = PHONE_SOURCE_PRODUCER
+    override val sourceProducer: String = PRODUCER
 
-    override val sourceModel: String = PHONE_SOURCE_MODEL
+    override val sourceModel: String = MODEL
 
     override val version: String = BuildConfig.VERSION_NAME
 
     companion object {
-        const val PHONE_SOURCE_PRODUCER = "ANDROID"
-        const val PHONE_SOURCE_MODEL = "PHONE"
+        const val PRODUCER = "ANDROID"
+        const val MODEL = "PHONE"
     }
 }

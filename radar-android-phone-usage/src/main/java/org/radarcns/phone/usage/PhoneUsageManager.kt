@@ -96,6 +96,7 @@ class PhoneUsageManager(context: PhoneUsageService) : AbstractDeviceManager<Phon
         updateStatus(DeviceStatusListener.Status.READY)
         // Start query of usage events
         phoneUsageProcessor.start()
+        register()
 
         // Activity to perform when alarm is triggered
         service.registerReceiver(phoneStateReceiver, IntentFilter().apply {

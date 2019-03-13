@@ -65,7 +65,7 @@ class PhoneLogManager(context: PhoneLogService) : AbstractDeviceManager<PhoneLog
 
     override fun start(acceptableIds: Set<String>) {
         updateStatus(DeviceStatusListener.Status.READY)
-        service.ensureRegistration(appLocalId, name, emptyMap())
+        register()
         // Calls and sms, in and outgoing and number of unread sms
         logProcessor.start {
             lastCallTimestamp = preferences.getLong(LAST_CALL_KEY, System.currentTimeMillis())

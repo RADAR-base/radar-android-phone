@@ -92,7 +92,7 @@ class PhoneLocationManager(context: PhoneLocationService) : AbstractDeviceManage
         if (locationManager == null) {
             return
         }
-        service.ensureRegistration(appLocalId, name, emptyMap())
+        register()
         handler.start()
 
         updateStatus(DeviceStatusListener.Status.READY)

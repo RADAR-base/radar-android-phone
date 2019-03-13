@@ -49,7 +49,7 @@ class PhoneBluetoothManager(service: PhoneBluetoothService) : AbstractDeviceMana
 
     override fun start(acceptableIds: Set<String>) {
         updateStatus(DeviceStatusListener.Status.READY)
-        service.ensureRegistration(appLocalId, name, emptyMap())
+        register()
         processor.start()
         updateStatus(DeviceStatusListener.Status.CONNECTED)
     }

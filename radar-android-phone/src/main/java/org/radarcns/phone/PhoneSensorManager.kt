@@ -79,7 +79,7 @@ class PhoneSensorManager(context: PhoneSensorService) : AbstractDeviceManager<Ph
 
     @SuppressLint("WakelockTimeout")
     override fun start(acceptableIds: Set<String>) {
-        service.ensureRegistration(appLocalId, name, emptyMap())
+        register()
         mHandler.start()
         mHandler.execute {
             wakeLock = (service.getSystemService(POWER_SERVICE) as PowerManager?)?.let {pm ->

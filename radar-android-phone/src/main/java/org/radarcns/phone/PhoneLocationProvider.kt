@@ -21,8 +21,8 @@ import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.content.pm.PackageManager
 import org.radarbase.android.device.BaseDeviceState
 import org.radarbase.android.device.DeviceServiceProvider
-import org.radarcns.phone.PhoneSensorProvider.Companion.PHONE_SOURCE_MODEL
-import org.radarcns.phone.PhoneSensorProvider.Companion.PHONE_SOURCE_PRODUCER
+import org.radarcns.phone.PhoneSensorProvider.Companion.MODEL
+import org.radarcns.phone.PhoneSensorProvider.Companion.PRODUCER
 
 class PhoneLocationProvider : DeviceServiceProvider<BaseDeviceState>() {
     override val description: String?
@@ -39,9 +39,9 @@ class PhoneLocationProvider : DeviceServiceProvider<BaseDeviceState>() {
 
     override val isDisplayable: Boolean = false
 
-    override val sourceProducer: String = PHONE_SOURCE_PRODUCER
+    override val sourceProducer: String = PRODUCER
 
-    override val sourceModel: String = PHONE_SOURCE_MODEL
+    override val sourceModel: String = MODEL
 
     override val version: String = BuildConfig.VERSION_NAME
 }
