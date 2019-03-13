@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The Hyve
+ * Copyright 2017 The Hyve
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,24 @@
  * limitations under the License.
  */
 
-package org.radarcns.phone.telephony;
+package org.radarcns.phone
 
-import android.database.Cursor;
+import org.radarbase.android.device.BaseDeviceState
 
 /**
- * Functional interface for processing a record.
+ * The status on a single point in time
  */
-interface RecordProcessor {
-    /**
-     * Process a single record/
-     * @param cursor current record to process
-     * @return timestamp of the parsed record
-     */
-    long processRecord(Cursor cursor);
+class PhoneState : BaseDeviceState() {
+    override val acceleration = floatArrayOf(Float.NaN, Float.NaN, Float.NaN)
+    @set:Synchronized
+    override var batteryLevel = Float.NaN
+
+    override val hasAcceleration: Boolean = true
+
+    @Synchronized
+    fun setAcceleration(x: Float, y: Float, z: Float) {
+        this.acceleration[0] = x
+        this.acceleration[1] = y
+        this.acceleration[2] = z
+    }
 }

@@ -1,10 +1,10 @@
-
-//---------------------------------------------------------------------------//
-// Build system metadata                                                     //
-//---------------------------------------------------------------------------//
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'com.jfrog.artifactory'
+apply plugin: 'maven-publish'
+apply plugin: 'digital.wup.android-maven-publish'
 
 ext.sharedManifest = manifest {
-    attributes("Implementation-Title": moduleName,
+    attributes("Implementation-Title": name,
             "Implementation-Version": version)
 }
 
@@ -22,8 +22,9 @@ task javadoc(type: Javadoc) {
         }
     }
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-    exclude '**/R.java'
     exclude '**/BuildConfig.java'
+    exclude '**/R.java'
+    exclude '**/*.kt'
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
@@ -40,7 +41,7 @@ publishing {
             artifact javadocJar
 
             pom {
-                description = moduleDescription
+                description = project.description
                 licenses {
                     license {
                         name = 'The Apache Software License, Version 2.0'
@@ -81,15 +82,15 @@ publishing {
 }
 
 bintray {
-    user project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-    key project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-    override false
+    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+    override = false
     publications 'mavenAar'
     pkg {
         repo = project.group
-        name = moduleName
+        name = project.name
         userOrg = 'radar-cns'
-        desc = moduleDescription
+        desc = project.description
         licenses = ['Apache-2.0']
         websiteUrl = website
         issueTrackerUrl = issueUrl
@@ -98,7 +99,7 @@ bintray {
         githubReleaseNotesFile = 'README.md'
         version {
             name = project.version
-            desc = moduleDescription
+            desc = project.description
             vcsTag = System.getenv('TRAVIS_TAG')
             released = new Date()
             gpg {
