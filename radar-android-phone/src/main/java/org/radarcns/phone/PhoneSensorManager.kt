@@ -38,7 +38,6 @@ import org.radarbase.android.util.OfflineProcessor
 import org.radarbase.android.util.SafeHandler
 import org.radarcns.kafka.ObservationKey
 import org.radarcns.passive.phone.*
-import org.radarcns.phone.PhoneSensorService.Companion.PHONE_SENSOR_BATTERY_INTERVAL_DEFAULT_SECONDS
 import org.radarcns.phone.PhoneSensorService.Companion.PHONE_SENSOR_INTERVAL_DEFAULT
 import org.slf4j.LoggerFactory
 import java.io.IOException
@@ -66,7 +65,6 @@ class PhoneSensorManager(context: PhoneSensorService) : AbstractDeviceManager<Ph
             process = listOf(this@PhoneSensorManager::processBatteryStatus)
             requestCode = REQUEST_CODE_PENDING_INTENT
             requestName = ACTIVITY_LAUNCH_WAKE
-            interval(PHONE_SENSOR_BATTERY_INTERVAL_DEFAULT_SECONDS, TimeUnit.SECONDS)
             wake = true
         }
 

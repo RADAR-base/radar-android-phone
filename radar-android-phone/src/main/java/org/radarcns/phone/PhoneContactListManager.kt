@@ -43,11 +43,9 @@ class PhoneContactListManager(service: PhoneContactsListService) : AbstractDevic
             process = listOf(this@PhoneContactListManager::processContacts)
             requestCode = CONTACTS_LIST_UPDATE_REQUEST_CODE
             requestName = ACTION_UPDATE_CONTACTS_LIST
-            interval(PhoneContactsListService.PHONE_CONTACTS_LIST_INTERVAL_DEFAULT, TimeUnit.SECONDS)
             wake = false
         }
     }
-
 
     override fun start(acceptableIds: Set<String>) {
         updateStatus(DeviceStatusListener.Status.READY)

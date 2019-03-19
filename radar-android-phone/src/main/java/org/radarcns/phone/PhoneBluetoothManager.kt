@@ -33,16 +33,16 @@ import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-class PhoneBluetoothManager(service: PhoneBluetoothService) : AbstractDeviceManager<PhoneBluetoothService, BaseDeviceState>(service), Runnable {
+class PhoneBluetoothManager(service: PhoneBluetoothService) : AbstractDeviceManager<PhoneBluetoothService, BaseDeviceState>(service) {
     private val processor: OfflineProcessor
     private val bluetoothDevicesTopic: DataCache<ObservationKey, PhoneBluetoothDevices> = createCache("android_phone_bluetooth_devices", PhoneBluetoothDevices::class.java)
     private var bluetoothBroadcastReceiver: BroadcastReceiver? = null
 
     init {
         processor = OfflineProcessor(service) {
+            process = listOf(this@PhoneBluetoothManager::processBluetoothDevices)
             requestCode = SCAN_DEVICES_REQUEST_CODE
             requestName = ACTION_SCAN_DEVICES
-            interval(PhoneBluetoothService.BLUETOOTH_DEVICES_SCAN_INTERVAL_DEFAULT, TimeUnit.SECONDS)
             wake = true
         }
     }
@@ -54,7 +54,7 @@ class PhoneBluetoothManager(service: PhoneBluetoothService) : AbstractDeviceMana
         updateStatus(DeviceStatusListener.Status.CONNECTED)
     }
 
-    override fun run() {
+    private fun processBluetoothDevices() {
         val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         if (bluetoothAdapter == null) {
             logger.error("Bluetooth is not available.")

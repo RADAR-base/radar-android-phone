@@ -58,7 +58,6 @@ class PhoneLogManager(context: PhoneLogService) : AbstractDeviceManager<PhoneLog
                     this@PhoneLogManager::processNumberUnreadSms)
             requestCode = REQUEST_CODE_PENDING_INTENT
             requestName = ACTIVITY_LAUNCH_WAKE
-            interval(PhoneLogService.CALL_SMS_LOG_INTERVAL_DEFAULT, TimeUnit.SECONDS)
             wake = false
         }
     }
