@@ -58,7 +58,7 @@ subprojects {
     }
 
     dependencies {
-        api "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+        api "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
         api "org.radarbase:radar-commons-android:$radarCommonsVersion"
         implementation "org.radarcns:radar-schemas-commons:$radarSchemasVersion"
 
