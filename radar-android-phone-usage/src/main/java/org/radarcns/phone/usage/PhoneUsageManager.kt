@@ -117,7 +117,7 @@ class PhoneUsageManager(context: PhoneUsageService) : AbstractDeviceManager<Phon
             else -> return
         }
 
-        val time = System.currentTimeMillis() / 1000.0
+        val time = currentTime
         send(userInteractionTopic, PhoneUserInteraction(time, time, state))
 
         // Save the last user interaction state. Value shutdown is used to register boot.
@@ -184,8 +184,7 @@ class PhoneUsageManager(context: PhoneUsageService) : AbstractDeviceManager<Phon
         }
 
         val time = lastTimestamp / 1000.0
-        val timeReceived = System.currentTimeMillis() / 1000.0
-        val value = PhoneUsageEvent(time, timeReceived, lastPackageName, null, null, usageEventType)
+        val value = PhoneUsageEvent(time, currentTime, lastPackageName, null, null, usageEventType)
         send(usageEventTopic!!, value)
 
         if (logger.isDebugEnabled) {

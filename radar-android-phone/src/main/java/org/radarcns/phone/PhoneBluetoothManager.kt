@@ -91,9 +91,9 @@ class PhoneBluetoothManager(service: PhoneBluetoothService) : AbstractDeviceMana
                         }
 
                         if (!isClosed) {
-                            val now = System.currentTimeMillis() / 1000.0
-                            send(bluetoothDevicesTopic,
-                                    PhoneBluetoothDevices(now, now, bondedDevices, numberOfDevices, wasEnabled))
+                            val time = currentTime
+                            send(bluetoothDevicesTopic, PhoneBluetoothDevices(
+                                    time, time, bondedDevices, numberOfDevices, wasEnabled))
                         }
                     }
                 }

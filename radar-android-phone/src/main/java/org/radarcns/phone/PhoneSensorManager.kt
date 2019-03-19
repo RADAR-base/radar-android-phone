@@ -161,7 +161,7 @@ class PhoneSensorManager(context: PhoneSensorService) : AbstractDeviceManager<Ph
         val z = event.values[2] / SensorManager.GRAVITY_EARTH
         state.setAcceleration(x, y, z)
 
-        val time = System.currentTimeMillis() / 1_000.0
+        val time = currentTime
 
         send(accelerationTopic, PhoneAcceleration(time, time, x, y, z))
     }
@@ -169,7 +169,7 @@ class PhoneSensorManager(context: PhoneSensorService) : AbstractDeviceManager<Ph
     private fun processLight(event: SensorEvent) {
         val lightValue = event.values[0]
 
-        val time = System.currentTimeMillis() / 1_000.0
+        val time = currentTime
 
         send(lightTopic, PhoneLight(time, time, lightValue))
     }
@@ -180,7 +180,7 @@ class PhoneSensorManager(context: PhoneSensorService) : AbstractDeviceManager<Ph
         val axisY = event.values[1]
         val axisZ = event.values[2]
 
-        val time = System.currentTimeMillis() / 1_000.0
+        val time = currentTime
 
         send(gyroscopeTopic, PhoneGyroscope(time, time, axisX, axisY, axisZ))
     }
@@ -191,7 +191,7 @@ class PhoneSensorManager(context: PhoneSensorService) : AbstractDeviceManager<Ph
         val axisY = event.values[1]
         val axisZ = event.values[2]
 
-        val time = System.currentTimeMillis() / 1_000.0
+        val time = currentTime
 
         send(magneticFieldTopic, PhoneMagneticField(time, time, axisX, axisY, axisZ))
     }
@@ -200,7 +200,7 @@ class PhoneSensorManager(context: PhoneSensorService) : AbstractDeviceManager<Ph
         // Number of step since listening or since reboot
         val stepCount = event.values[0].toInt()
 
-        val time = System.currentTimeMillis() / 1_000.0
+        val time = currentTime
 
         // Send how many steps have been taken since the last time this function was triggered
         // Note: normally processStep() is called for every new step and the stepsSinceLastUpdate is 1
@@ -232,7 +232,7 @@ class PhoneSensorManager(context: PhoneSensorService) : AbstractDeviceManager<Ph
 
         state.batteryLevel = batteryPct
 
-        val time = System.currentTimeMillis() / 1000.0
+        val time = currentTime
         send(batteryTopic, PhoneBatteryLevel(time, time, batteryPct, isPlugged, batteryStatus))
     }
 

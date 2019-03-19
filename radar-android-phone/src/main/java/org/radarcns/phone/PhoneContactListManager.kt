@@ -120,7 +120,7 @@ class PhoneContactListManager(service: PhoneContactsListService) : AbstractDevic
                 .putStringSet(CONTACT_LOOKUPS, savedContactLookups)
                 .apply()
 
-        val timestamp = System.currentTimeMillis() / 1000.0
+        val timestamp = currentTime
         send(contactsTopic, PhoneContactList(timestamp, timestamp, added, removed, newContactLookups.size))
     }
 

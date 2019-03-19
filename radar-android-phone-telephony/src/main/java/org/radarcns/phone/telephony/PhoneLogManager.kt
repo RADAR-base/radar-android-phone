@@ -173,10 +173,9 @@ class PhoneLogManager(context: PhoneLogService) : AbstractDeviceManager<PhoneLog
             else -> PhoneCallType.UNKNOWN
         }
 
-        val timestamp = System.currentTimeMillis() / 1000.0
         send(callTopic, PhoneCall(
                 eventTimestamp,
-                timestamp,
+                currentTime,
                 duration,
                 targetKey,
                 type,
@@ -184,7 +183,7 @@ class PhoneLogManager(context: PhoneLogService) : AbstractDeviceManager<PhoneLog
                 phoneNumber == null,
                 target.length))
 
-        logger.info("Call log: {}, {}, {}, {}, {}, {}, contact? {}", target, targetKey, duration, type, eventTimestamp, timestamp, targetIsContact)
+        logger.info("Call log: {}, {}, {}, {}, {}, contact? {}", target, targetKey, duration, type, eventTimestamp, targetIsContact)
     }
 
     private fun sendPhoneSms(eventTimestamp: Double, target: String, typeCode: Int, message: String, targetIsContact: Boolean) {
@@ -206,10 +205,9 @@ class PhoneLogManager(context: PhoneLogService) : AbstractDeviceManager<PhoneLog
         // Only incoming messages are associated with a contact. For outgoing we don't know
         val sendFromContact: Boolean? = if (type == PhoneSmsType.INCOMING) targetIsContact else null
 
-        val timestamp = System.currentTimeMillis() / 1000.0
         send(smsTopic, PhoneSms(
                 eventTimestamp,
-                timestamp,
+                currentTime,
                 targetKey,
                 type,
                 length,
@@ -217,15 +215,15 @@ class PhoneLogManager(context: PhoneLogService) : AbstractDeviceManager<PhoneLog
                 phoneNumber == null,
                 target.length))
 
-        logger.info("SMS log: {}, {}, {}, {}, {}, {} chars, contact? {}, length? {}",
-                target, targetKey, type, eventTimestamp, timestamp, length, sendFromContact, target.length)
+        logger.info("SMS log: {}, {}, {}, {}, {} chars, contact? {}, length? {}",
+                target, targetKey, type, eventTimestamp, length, sendFromContact, target.length)
     }
 
     private fun sendNumberUnreadSms(numberUnread: Int) {
-        val timestamp = System.currentTimeMillis() / 1000.0
-        send(smsUnreadTopic, PhoneSmsUnread(timestamp, timestamp, numberUnread))
+        val time = currentTime
+        send(smsUnreadTopic, PhoneSmsUnread(time, time, numberUnread))
 
-        logger.info("SMS unread: {} {}", timestamp, numberUnread)
+        logger.info("SMS unread: {} {}", time, numberUnread)
     }
 
     /**

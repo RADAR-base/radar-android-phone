@@ -110,7 +110,7 @@ class PhoneLocationManager(context: PhoneLocationService) : AbstractDeviceManage
         }
 
         val eventTimestamp = location.time / 1000.0
-        val timestamp = System.currentTimeMillis() / 1000.0
+        val timestamp = currentTime
 
         val provider = when(location.provider) {
             LocationManager.GPS_PROVIDER -> LocationProvider.GPS
