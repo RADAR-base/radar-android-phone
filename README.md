@@ -1,3 +1,7 @@
+# DEPRECATION NOTICE
+
+All plugin development has moved to https://github.com/RADAR-base/radar-commons-android in the plugins directory. Please view that directory for examples of a plugin.
+
 # Basic phone sensors RADAR-pRMT
 
 A plugin for the RADAR pRMT app. The plugin can be used on an Android 5.0 (or later) device. This collects many types of data from an Android device.
